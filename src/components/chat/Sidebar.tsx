@@ -22,20 +22,28 @@ interface Conversation {
 export const Sidebar = ({ selectedChat, onSelectChat, className = "" }: SidebarProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchConversations = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+        console.log('Fetching conversations...');
+        
         const { data, error } = await supabase.rpc('get_conversations');
         
         if (error) {
           console.error('Error fetching conversations:', error);
+          setError('Failed to load conversations');
           return;
         }
 
+        console.log('Conversations data:', data);
         setConversations(data || []);
       } catch (error) {
         console.error('Error:', error);
+        setError('An unexpected error occurred');
       } finally {
         setIsLoading(false);
       }
@@ -80,6 +88,8 @@ export const Sidebar = ({ selectedChat, onSelectChat, className = "" }: SidebarP
         <div className="space-y-0.5 px-2">
           {isLoading ? (
             <div className="p-4 text-sm text-gray-500 text-center">Loading conversations...</div>
+          ) : error ? (
+            <div className="p-4 text-sm text-red-500 text-center">{error}</div>
           ) : conversations.length === 0 ? (
             <div className="p-4 text-sm text-gray-500 text-center">No conversations yet</div>
           ) : (
