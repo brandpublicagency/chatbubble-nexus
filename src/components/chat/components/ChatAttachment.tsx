@@ -27,16 +27,27 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         return;
       }
 
+      // Add file extension based on mime type if not present
+      let fullPath = path;
+      if (!path.includes('.')) {
+        const extension = type.split('/')[1] || 'jpeg';
+        fullPath = `${path}.${extension}`;
+        console.log('Added file extension:', {
+          originalPath: path,
+          fullPath,
+          mimeType: type,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       try {
-        // Get the public URL directly without checking if file exists
-        // This is more reliable as the list operation might not work as expected
         const { data: urlData } = supabase.storage
           .from('chat_images')
-          .getPublicUrl(path);
+          .getPublicUrl(fullPath);
 
         if (!urlData?.publicUrl) {
           console.error('Failed to generate public URL:', {
-            path,
+            path: fullPath,
             timestamp: new Date().toISOString()
           });
           setLoading(false);
@@ -44,7 +55,8 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         }
 
         console.log('Public URL generated:', {
-          path,
+          originalPath: path,
+          fullPath,
           publicUrl: urlData.publicUrl,
           timestamp: new Date().toISOString()
         });
@@ -54,7 +66,8 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       } catch (error) {
         console.error('Error in ChatAttachment:', {
           error,
-          path,
+          originalPath: path,
+          fullPath,
           type,
           timestamp: new Date().toISOString()
         });
