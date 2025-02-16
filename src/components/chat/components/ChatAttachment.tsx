@@ -22,32 +22,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
-        // List files to verify the attachment exists
-        const { data: files, error: listError } = await supabase.storage
-          .from('chat_attachments')
-          .list('', {
-            search: path,
-            limit: 1
-          });
-
-        console.log('Storage bucket contents check:', {
-          path,
-          filesFound: files?.length,
-          listError,
-          timestamp: new Date().toISOString()
-        });
-
-        if (listError) {
-          console.error('Error listing files:', {
-            error: listError,
-            path,
-            timestamp: new Date().toISOString()
-          });
-          setLoading(false);
-          return;
-        }
-
-        // Get the public URL
+        // Get the public URL first
         const { data: urlData } = supabase.storage
           .from('chat_attachments')
           .getPublicUrl(path);
@@ -61,7 +36,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
           return;
         }
 
-        // Log the public URL generation
+        // Log successful URL generation
         console.log('Public URL generated:', {
           path,
           publicUrl: urlData.publicUrl,
@@ -69,6 +44,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         });
 
         setPublicUrl(urlData.publicUrl);
+        setLoading(false);
       } catch (error) {
         console.error('Error in ChatAttachment:', {
           error,
@@ -76,7 +52,6 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
           type,
           timestamp: new Date().toISOString()
         });
-      } finally {
         setLoading(false);
       }
     };
