@@ -41,24 +41,33 @@ export const ChatWindow = ({
         setIsLoading(true);
         setError(null);
 
-        // Fetch contact information
-        const { data: contactData, error: contactError } = await supabase
+        // First try to fetch by wa_id
+        let { data: contactData, error: contactError } = await supabase
           .from('contacts')
           .select('name')
           .eq('wa_id', chatId)
-          .single();
+          .maybeSingle();
 
-        if (contactError) {
-          console.error('Error fetching contact:', contactError);
-          setError('Failed to load contact information');
-          return;
+        if (!contactData) {
+          // If not found, try to fetch by id
+          const { data: contactByIdData, error: contactByIdError } = await supabase
+            .from('contacts')
+            .select('name')
+            .eq('id', chatId)
+            .maybeSingle();
+
+          if (contactByIdError) {
+            console.error('Error fetching contact by ID:', contactByIdError);
+          } else if (contactByIdData) {
+            contactData = contactByIdData;
+          }
         }
 
         if (contactData) {
           setContactName(contactData.name || '');
         }
 
-        // Fetch messages
+        // Fetch messages using the contact_id
         const { data: messageData, error: messageError } = await supabase
           .from('conversations')
           .select('*')
