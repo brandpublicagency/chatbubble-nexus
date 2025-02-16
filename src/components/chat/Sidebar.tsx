@@ -31,15 +31,31 @@ export const Sidebar = ({ selectedChat, onSelectChat, className = "" }: SidebarP
         setError(null);
         console.log('Fetching conversations...');
         
+        // First, let's check if we can query the conversations table directly
+        const { data: conversationsData, error: conversationsError } = await supabase
+          .from('conversations')
+          .select('*')
+          .limit(1);
+        console.log('Raw conversations data:', conversationsData, 'Error:', conversationsError);
+        
+        // Then check the contacts table
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('contacts')
+          .select('*')
+          .limit(1);
+        console.log('Raw contacts data:', contactsData, 'Error:', contactsError);
+        
+        // Now try the RPC function
         const { data, error } = await supabase.rpc('get_conversations');
+        console.log('RPC function response:', { data, error });
         
         if (error) {
           console.error('Error fetching conversations:', error);
-          setError('Failed to load conversations');
+          setError(`Failed to load conversations: ${error.message}`);
           return;
         }
 
-        console.log('Conversations data:', data);
+        console.log('Final conversations data:', data);
         setConversations(data || []);
       } catch (error) {
         console.error('Error:', error);
