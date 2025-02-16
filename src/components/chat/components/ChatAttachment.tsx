@@ -20,12 +20,20 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
-        console.log('Attempting to get public URL for:', {
+        // First check if the file exists in storage
+        const { data: checkData, error: checkError } = await supabase.storage
+          .from('chat_attachments')
+          .list('', {
+            search: path
+          });
+
+        console.log('Storage list check result:', {
           path,
-          type,
-          bucket: 'chat_attachments'
+          filesFound: checkData,
+          error: checkError
         });
 
+        // Get the public URL
         const { data } = supabase.storage
           .from('chat_attachments')
           .getPublicUrl(path);
@@ -37,12 +45,35 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
         console.log('Successfully generated public URL:', {
           path,
-          publicUrl: data.publicUrl
+          publicUrl: data.publicUrl,
+          timestamp: new Date().toISOString()
         });
+
+        // Verify the URL is accessible
+        try {
+          const response = await fetch(data.publicUrl, { method: 'HEAD' });
+          console.log('URL accessibility check:', {
+            url: data.publicUrl,
+            status: response.status,
+            ok: response.ok,
+            timestamp: new Date().toISOString()
+          });
+        } catch (urlError) {
+          console.error('Error checking URL accessibility:', {
+            url: data.publicUrl,
+            error: urlError,
+            timestamp: new Date().toISOString()
+          });
+        }
 
         setPublicUrl(data.publicUrl);
       } catch (error) {
-        console.error('Unexpected error getting public URL:', error);
+        console.error('Unexpected error getting public URL:', {
+          error,
+          path,
+          type,
+          timestamp: new Date().toISOString()
+        });
       }
     };
 
@@ -50,13 +81,20 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
   }, [path]);
   
   if (!path || !publicUrl) {
-    console.warn('Missing required data:', { path, publicUrl });
+    console.warn('Missing required data:', { 
+      path, 
+      publicUrl,
+      timestamp: new Date().toISOString() 
+    });
     return null;
   }
   
   if (type?.startsWith('image/')) {
     if (imageError) {
-      console.warn('Image failed to load, showing fallback for:', publicUrl);
+      console.warn('Image failed to load, showing fallback for:', {
+        publicUrl,
+        timestamp: new Date().toISOString()
+      });
       return (
         <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
           Unable to load image
