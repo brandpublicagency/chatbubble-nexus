@@ -28,7 +28,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
-        // Get the public URL directly
+        // Get the public URL directly - path should be exactly as stored (just the filename)
         const { data: urlData } = supabase.storage
           .from('chat_images')
           .getPublicUrl(path);
