@@ -30,13 +30,12 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
       try {
         // Get the public URL for the image
-        const { data: urlData, error: urlError } = supabase.storage
+        const { data } = supabase.storage
           .from('chat_images')
           .getPublicUrl(path);
 
-        if (urlError || !urlData?.publicUrl) {
+        if (!data?.publicUrl) {
           console.error('Failed to generate public URL:', {
-            error: urlError,
             path,
             timestamp: new Date().toISOString()
           });
@@ -45,13 +44,13 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
         console.log('Generated public URL:', {
           originalPath: path,
-          publicUrl: urlData.publicUrl,
+          publicUrl: data.publicUrl,
           timestamp: new Date().toISOString()
         });
 
         // Pre-load the image to verify it exists
         const img = new Image();
-        img.src = urlData.publicUrl;
+        img.src = data.publicUrl;
         
         await new Promise((resolve, reject) => {
           img.onload = resolve;
@@ -59,14 +58,14 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
             console.error('Image preload failed:', {
               error,
               path,
-              publicUrl: urlData.publicUrl,
+              publicUrl: data.publicUrl,
               timestamp: new Date().toISOString()
             });
             reject(error);
           };
         });
 
-        setPublicUrl(urlData.publicUrl);
+        setPublicUrl(data.publicUrl);
         setImageError(false);
       } catch (error) {
         console.error('Error loading image:', {
