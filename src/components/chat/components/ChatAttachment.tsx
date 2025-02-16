@@ -9,18 +9,17 @@ interface ChatAttachmentProps {
 }
 
 export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) => {
-  const [publicUrl, setPublicUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
   
-  useEffect(() => {
-    if (!path) return;
-    
-    const url = supabase.storage
-      .from('chat_attachments')
-      .getPublicUrl(path);
-      
-    console.log('Raw Supabase URL response:', url); // Debug log
-    setPublicUrl(url.data.publicUrl);
-  }, [path]);
+  // Log the raw props
+  console.log('ChatAttachment props:', { path, type });
+  
+  // Get the public URL directly without state management
+  const { data } = supabase.storage.from('chat_attachments').getPublicUrl(path);
+  const publicUrl = data?.publicUrl;
+  
+  // Log the generated URL
+  console.log('Generated public URL:', publicUrl);
 
   // Make sure we have a valid path and URL
   if (!path || !publicUrl) {
@@ -29,6 +28,15 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
   }
   
   if (type?.startsWith('image/')) {
+    // If we've had an error loading the image, show a fallback
+    if (imageError) {
+      return (
+        <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
+          Unable to load image
+        </div>
+      );
+    }
+
     return (
       <div className="mt-2 relative group">
         <img 
@@ -36,11 +44,15 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
           alt="Attached image" 
           className="max-w-full rounded-lg max-h-[300px] object-contain bg-gray-100"
           onError={(e) => {
-            console.error('Image failed to load:', publicUrl);
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
+            console.error('Image failed to load:', {
+              url: publicUrl,
+              error: e
+            });
+            setImageError(true);
           }}
-          crossOrigin="anonymous"
+          onLoad={() => {
+            console.log('Image loaded successfully:', publicUrl);
+          }}
         />
         <a 
           href={publicUrl} 
