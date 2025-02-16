@@ -29,45 +29,28 @@ export const useChatMessages = (chatId: string | null): ChatData => {
     const fetchMessages = async () => {
       if (!chatId) return;
 
-      console.log('Fetching messages for chatId:', chatId);
-
       try {
         setIsLoading(true);
         setError(null);
 
-        let { data: contactData, error: contactError } = await supabase
+        // First try to find contact by wa_id
+        const { data: contactData, error: contactError } = await supabase
           .from('contacts')
           .select('name')
           .eq('wa_id', chatId)
           .maybeSingle();
 
         if (contactError) {
-          console.error('Error fetching contact by wa_id:', contactError);
-        }
-
-        if (!contactData) {
-          console.log('No contact found with wa_id, trying id...');
-          const { data: contactByIdData, error: contactByIdError } = await supabase
-            .from('contacts')
-            .select('name')
-            .eq('id', chatId)
-            .maybeSingle();
-
-          if (contactByIdError) {
-            console.error('Error fetching contact by ID:', contactByIdError);
-          } else if (contactByIdData) {
-            contactData = contactByIdData;
-          }
+          console.error('Error fetching contact:', contactError);
+          setError('Failed to load contact information');
+          return;
         }
 
         if (contactData) {
-          console.log('Found contact:', contactData);
           setContactName(contactData.name || '');
-        } else {
-          console.log('No contact found for ID:', chatId);
         }
 
-        console.log('Fetching conversations for contact_id:', chatId);
+        // Fetch messages
         const { data: messageData, error: messageError } = await supabase
           .from('conversations')
           .select('*')
@@ -80,7 +63,6 @@ export const useChatMessages = (chatId: string | null): ChatData => {
           return;
         }
 
-        console.log('Fetched messages:', messageData);
         setMessages(messageData || []);
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -92,9 +74,9 @@ export const useChatMessages = (chatId: string | null): ChatData => {
 
     fetchMessages();
 
-    console.log('Setting up realtime subscription for chatId:', chatId);
+    // Set up realtime subscription with broadcast mode
     const channel = supabase
-      .channel('conversations-changes')
+      .channel('public:conversations')
       .on(
         'postgres_changes',
         {
@@ -104,20 +86,15 @@ export const useChatMessages = (chatId: string | null): ChatData => {
           filter: `contact_id=eq.${chatId}`,
         },
         (payload) => {
-          console.log('Real-time update received:', payload);
-          
           if (payload.eventType === 'INSERT') {
-            console.log('Inserting new message:', payload.new);
             setMessages((currentMessages) => [...currentMessages, payload.new as Message]);
           } else if (payload.eventType === 'UPDATE') {
-            console.log('Updating message:', payload.new);
             setMessages((currentMessages) =>
               currentMessages.map((msg) =>
                 msg.id === payload.new.id ? payload.new as Message : msg
               )
             );
           } else if (payload.eventType === 'DELETE') {
-            console.log('Deleting message:', payload.old);
             setMessages((currentMessages) =>
               currentMessages.filter((msg) => msg.id !== payload.old.id)
             );
@@ -125,11 +102,12 @@ export const useChatMessages = (chatId: string | null): ChatData => {
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status);
+        if (status !== 'SUBSCRIBED') {
+          console.error('Failed to subscribe to changes:', status);
+        }
       });
 
     return () => {
-      console.log('Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [chatId]);
