@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -65,7 +66,10 @@ serve(async (req) => {
       const imageBlob = await imageResponse.blob()
       
       // 3. Generate a unique path for Supabase storage
-      const filePath = `${contact.wa_id}/${Date.now()}.jpg`
+      const timestamp = Date.now()
+      const filePath = `${timestamp}.jpg`
+      
+      console.log('Attempting to upload image with path:', filePath)
       
       // 4. Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
@@ -77,8 +81,11 @@ serve(async (req) => {
         })
       
       if (uploadError) {
+        console.error('Upload error:', uploadError)
         throw new Error(`Failed to upload to storage: ${uploadError.message}`)
       }
+      
+      console.log('Successfully uploaded image to:', filePath)
       
       // 5. Save message to database with the correct path
       const { error: insertError } = await supabase
@@ -91,11 +98,12 @@ serve(async (req) => {
         })
       
       if (insertError) {
+        console.error('Insert error:', insertError)
         throw new Error(`Failed to insert message: ${insertError.message}`)
       }
       
       return new Response(
-        JSON.stringify({ status: 'Image processed successfully' }),
+        JSON.stringify({ status: 'Image processed successfully', path: filePath }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
@@ -106,9 +114,6 @@ serve(async (req) => {
     // Handle other message types as before
     const text = message?.text?.body
     const wa_id = contact?.wa_id
-    const profileName = contact?.profile?.name
-
-    console.log(`Processing text message: ${text} from ${wa_id}`)
 
     if (!text) {
       return new Response(JSON.stringify({ status: 'No text in webhook' }), {
