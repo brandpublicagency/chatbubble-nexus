@@ -38,7 +38,12 @@ export const Sidebar = ({ selectedChat, onSelectChat, className = "" }: SidebarP
           return;
         }
 
-        setConversations(data || []);
+        // Sort conversations by created_at in descending order (most recent first)
+        const sortedConversations = (data || []).sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        setConversations(sortedConversations);
       } catch (error) {
         console.error('Error:', error);
         setError('An unexpected error occurred');
