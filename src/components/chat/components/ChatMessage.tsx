@@ -2,6 +2,7 @@
 import { cn } from "@/lib/utils";
 import { formatMessageTimestamp } from "../utils/messageFormatting";
 import { MessageText } from "./MessageText";
+import { ChatAttachment } from "./ChatAttachment";
 
 interface ChatMessageProps {
   message: {
@@ -9,6 +10,8 @@ interface ChatMessageProps {
     text: string;
     created_at: string;
     sender_id: number | null;
+    attachment_path?: string | null;
+    attachment_type?: string | null;
   };
 }
 
@@ -28,7 +31,10 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           "border border-gray-200": message.sender_id,
         })}
       >
-        <MessageText text={message.text} />
+        {message.text && <MessageText text={message.text} />}
+        {message.attachment_path && message.attachment_type && (
+          <ChatAttachment path={message.attachment_path} type={message.attachment_type} />
+        )}
       </div>
     </div>
   );

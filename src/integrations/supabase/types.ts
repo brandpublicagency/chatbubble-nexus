@@ -173,6 +173,8 @@ export type Database = {
       }
       conversations: {
         Row: {
+          attachment_path: string | null
+          attachment_type: string | null
           contact_id: string | null
           created_at: string
           id: string
@@ -182,6 +184,8 @@ export type Database = {
           text: string | null
         }
         Insert: {
+          attachment_path?: string | null
+          attachment_type?: string | null
           contact_id?: string | null
           created_at?: string
           id?: string
@@ -191,6 +195,8 @@ export type Database = {
           text?: string | null
         }
         Update: {
+          attachment_path?: string | null
+          attachment_type?: string | null
           contact_id?: string | null
           created_at?: string
           id?: string

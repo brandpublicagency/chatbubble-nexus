@@ -8,6 +8,8 @@ interface Message {
   created_at: string;
   contact_id: string;
   sender_id: number | null;
+  attachment_path?: string | null;
+  attachment_type?: string | null;
 }
 
 interface ChatData {
