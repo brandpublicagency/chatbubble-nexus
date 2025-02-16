@@ -30,30 +30,43 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
       try {
         // Get the public URL for the image
-        const { data } = supabase.storage
+        const { data: urlData, error: urlError } = supabase.storage
           .from('chat_images')
           .getPublicUrl(path);
 
-        if (!data?.publicUrl) {
+        if (urlError || !urlData?.publicUrl) {
+          console.error('Failed to generate public URL:', {
+            error: urlError,
+            path,
+            timestamp: new Date().toISOString()
+          });
           throw new Error('Failed to generate public URL');
         }
 
         console.log('Generated public URL:', {
           originalPath: path,
-          publicUrl: data.publicUrl,
+          publicUrl: urlData.publicUrl,
           timestamp: new Date().toISOString()
         });
 
         // Pre-load the image to verify it exists
         const img = new Image();
-        img.src = data.publicUrl;
+        img.src = urlData.publicUrl;
         
         await new Promise((resolve, reject) => {
           img.onload = resolve;
-          img.onerror = reject;
+          img.onerror = (error) => {
+            console.error('Image preload failed:', {
+              error,
+              path,
+              publicUrl: urlData.publicUrl,
+              timestamp: new Date().toISOString()
+            });
+            reject(error);
+          };
         });
 
-        setPublicUrl(data.publicUrl);
+        setPublicUrl(urlData.publicUrl);
         setImageError(false);
       } catch (error) {
         console.error('Error loading image:', {
@@ -109,10 +122,11 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
           src={publicUrl}
           alt="Attached image" 
           className="max-w-full rounded-lg max-h-[300px] object-contain bg-gray-100"
-          onError={() => {
+          onError={(e) => {
             console.error('Image failed to load:', {
               publicUrl,
               path,
+              error: e,
               timestamp: new Date().toISOString()
             });
             setImageError(true);

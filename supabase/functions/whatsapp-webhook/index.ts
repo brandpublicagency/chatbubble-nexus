@@ -96,9 +96,9 @@ serve(async (req) => {
         type: imageBlob.type
       })
       
-      // 3. Generate a unique filename
+      // 3. Generate a unique filename that includes image ID
       const timestamp = Date.now()
-      const filePath = `${timestamp}.jpg`
+      const filePath = `${message.image.id}_${timestamp}.jpg`
       
       console.log('Attempting to upload image with path:', filePath)
       
