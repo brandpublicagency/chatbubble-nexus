@@ -11,90 +11,98 @@ interface ChatAttachmentProps {
 export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) => {
   const [imageError, setImageError] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     const fetchUrl = async () => {
       if (!path) {
         console.warn('No path provided to ChatAttachment');
+        setLoading(false);
         return;
       }
 
       try {
-        // First check if the file exists in storage
-        const { data: checkData, error: checkError } = await supabase.storage
+        // List files to verify the attachment exists
+        const { data: files, error: listError } = await supabase.storage
           .from('chat_attachments')
           .list('', {
-            search: path
+            search: path,
+            limit: 1
           });
 
-        console.log('Storage list check result:', {
+        console.log('Storage bucket contents check:', {
           path,
-          filesFound: checkData,
-          error: checkError
-        });
-
-        // Get the public URL
-        const { data } = supabase.storage
-          .from('chat_attachments')
-          .getPublicUrl(path);
-
-        if (!data?.publicUrl) {
-          console.error('No public URL returned for path:', path);
-          return;
-        }
-
-        console.log('Successfully generated public URL:', {
-          path,
-          publicUrl: data.publicUrl,
+          filesFound: files?.length,
+          listError,
           timestamp: new Date().toISOString()
         });
 
-        // Verify the URL is accessible
-        try {
-          const response = await fetch(data.publicUrl, { method: 'HEAD' });
-          console.log('URL accessibility check:', {
-            url: data.publicUrl,
-            status: response.status,
-            ok: response.ok,
+        if (listError) {
+          console.error('Error listing files:', {
+            error: listError,
+            path,
             timestamp: new Date().toISOString()
           });
-        } catch (urlError) {
-          console.error('Error checking URL accessibility:', {
-            url: data.publicUrl,
-            error: urlError,
-            timestamp: new Date().toISOString()
-          });
+          setLoading(false);
+          return;
         }
 
-        setPublicUrl(data.publicUrl);
+        // Get the public URL
+        const { data: urlData } = supabase.storage
+          .from('chat_attachments')
+          .getPublicUrl(path);
+
+        if (!urlData?.publicUrl) {
+          console.error('Failed to generate public URL:', {
+            path,
+            timestamp: new Date().toISOString()
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Log the public URL generation
+        console.log('Public URL generated:', {
+          path,
+          publicUrl: urlData.publicUrl,
+          timestamp: new Date().toISOString()
+        });
+
+        setPublicUrl(urlData.publicUrl);
       } catch (error) {
-        console.error('Unexpected error getting public URL:', {
+        console.error('Error in ChatAttachment:', {
           error,
           path,
           type,
           timestamp: new Date().toISOString()
         });
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUrl();
   }, [path]);
+
+  if (loading) {
+    return (
+      <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
+        Loading attachment...
+      </div>
+    );
+  }
   
   if (!path || !publicUrl) {
-    console.warn('Missing required data:', { 
-      path, 
+    console.warn('Missing required data:', {
+      path,
       publicUrl,
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString()
     });
     return null;
   }
-  
+
   if (type?.startsWith('image/')) {
     if (imageError) {
-      console.warn('Image failed to load, showing fallback for:', {
-        publicUrl,
-        timestamp: new Date().toISOString()
-      });
       return (
         <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
           Unable to load image
