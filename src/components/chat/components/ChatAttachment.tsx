@@ -29,6 +29,14 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const chatImagesBucket = buckets?.find(b => b.name === 'chat_images');
+        
+        if (!chatImagesBucket) {
+          console.error('chat_images bucket not found');
+          throw new Error('Storage bucket not found');
+        }
+
         // Get the public URL for the image
         const { data } = supabase.storage
           .from('chat_images')
