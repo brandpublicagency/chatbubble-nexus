@@ -43,7 +43,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       try {
         // First check if the file exists
         const { data: existsData, error: existsError } = await supabase.storage
-          .from('chat_attachments')
+          .from('chat_images')  // Changed from chat_attachments to chat_images
           .list('', {
             search: fullPath
           });
@@ -58,7 +58,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
         // Get the public URL
         const { data: urlData } = supabase.storage
-          .from('chat_attachments')
+          .from('chat_images')  // Changed from chat_attachments to chat_images
           .getPublicUrl(fullPath);
 
         if (!urlData?.publicUrl) {
