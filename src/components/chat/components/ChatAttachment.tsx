@@ -22,26 +22,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
-        // First check if the file exists
-        const { data: files, error: listError } = await supabase.storage
-          .from('chat_attachments')
-          .list('', {
-            search: path
-          });
-
-        console.log('Files in storage:', {
-          files,
-          searchPath: path,
-          timestamp: new Date().toISOString()
-        });
-
-        if (listError) {
-          console.error('Error checking file existence:', listError);
-          setLoading(false);
-          return;
-        }
-
-        // Get the public URL
+        // Get the public URL directly - no need to check if file exists first
         const { data: urlData } = supabase.storage
           .from('chat_attachments')
           .getPublicUrl(path);
