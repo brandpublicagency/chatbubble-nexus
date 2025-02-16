@@ -21,7 +21,13 @@ serve(async (req) => {
       throw new Error('Missing environment variables')
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+    
     const body = await req.json()
     
     console.log('Received webhook:', JSON.stringify(body, null, 2))
@@ -111,26 +117,8 @@ serve(async (req) => {
         type: imageBlob.type
       })
       
-      // 4. Check if chat_images bucket exists, if not create it
-      const { data: buckets } = await supabase.storage.listBuckets()
-      const chatImagesBucket = buckets?.find(b => b.name === 'chat_images')
-      
-      if (!chatImagesBucket) {
-        const { error: createBucketError } = await supabase.storage.createBucket('chat_images', {
-          public: true,
-          fileSizeLimit: 5242880 // 5MB
-        })
-        
-        if (createBucketError) {
-          console.error('Failed to create bucket:', createBucketError)
-          throw new Error(`Failed to create storage bucket: ${createBucketError.message}`)
-        }
-        
-        console.log('Created chat_images bucket successfully')
-      }
-      
-      // 5. Upload to Supabase storage
-      const { data: bucketData, error: bucketError } = await supabase.storage
+      // 4. Upload to Supabase storage (no need to check bucket as we've created it via SQL)
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('chat_images')
         .upload(filePath, imageBlob, {
           contentType: 'image/jpeg',
@@ -138,30 +126,30 @@ serve(async (req) => {
           upsert: false
         })
       
-      if (bucketError) {
+      if (uploadError) {
         console.error('Upload error:', {
-          error: bucketError,
+          error: uploadError,
           path: filePath,
-          errorMessage: bucketError.message,
-          errorDetails: bucketError.details,
+          errorMessage: uploadError.message,
+          errorDetails: uploadError.details,
           blobSize: imageBlob.size,
           blobType: imageBlob.type
         })
-        throw new Error(`Failed to upload to storage: ${bucketError.message}`)
+        throw new Error(`Failed to upload to storage: ${uploadError.message}`)
       }
       
       console.log('Successfully uploaded image:', {
         path: filePath,
-        uploadData: bucketData
+        uploadData: uploadData
       })
       
-      // 6. Save message to database with attachment path
+      // 5. Save message to database with attachment path
       const { error: insertError } = await supabase
         .from('conversations')
         .insert({
           contact_id: contact.wa_id,
           text: message.image?.caption || 'Image message',
-          attachment_path: filePath,  // Store the generated filepath, not the Meta image ID
+          attachment_path: filePath,
           attachment_type: 'image/jpeg',
           meta_id: message.id
         })
