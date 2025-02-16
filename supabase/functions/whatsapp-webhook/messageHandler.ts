@@ -19,6 +19,7 @@ export async function handleMessage(
         hasImage: !!message.image
       });
       
+      // Process image first
       const imageResult = await processImage(
         supabase,
         metaToken,
@@ -28,6 +29,7 @@ export async function handleMessage(
       
       console.log('Image processed successfully:', imageResult);
       
+      // Save conversation only after image is processed
       const { error: insertError } = await supabase
         .from('conversations')
         .insert({
