@@ -25,37 +25,37 @@ export const AuthLayout = ({ onLogin }: AuthLayoutProps) => {
   return (
     <div className="min-h-screen flex">
       <div className="w-full md:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md space-y-8">
+        <div className="w-full max-w-md space-y-6">
           <div className="text-center">
-            <h2 className="text-3xl font-bold">Welcome back</h2>
+            <h2 className="text-2xl font-bold">Welcome back</h2>
             <p className="mt-2 text-sm text-gray-600">
               Please enter your details to sign in
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full"
+                  className="w-full h-9 text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-sm">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full"
+                  className="w-full h-9 text-sm"
                 />
               </div>
             </div>
@@ -63,13 +63,13 @@ export const AuthLayout = ({ onLogin }: AuthLayoutProps) => {
             <div className="flex items-center justify-between">
               <button
                 type="button"
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="text-xs text-gray-600 hover:text-gray-900"
               >
                 Forgot password?
               </button>
             </div>
 
-            <Button type="submit" className="w-full bg-black hover:bg-gray-800">
+            <Button type="submit" className="w-full bg-black hover:bg-gray-800 h-9 text-sm">
               Sign in
             </Button>
           </form>

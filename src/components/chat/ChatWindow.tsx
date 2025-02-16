@@ -1,4 +1,3 @@
-
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,7 +34,7 @@ export const ChatWindow = ({
   if (!chatId) {
     return (
       <div className={cn("flex items-center justify-center", className)}>
-        <p className="text-gray-500">Select a conversation to start chatting</p>
+        <p className="text-sm text-gray-500">Select a conversation to start chatting</p>
       </div>
     );
   }
@@ -43,25 +42,25 @@ export const ChatWindow = ({
   return (
     <div className={cn("flex relative", className)}>
       <div className="flex-1 flex flex-col">
-        <div className="h-16 border-b flex items-center justify-between px-4">
+        <div className="h-14 border-b flex items-center justify-between px-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs">
               JD
             </div>
-            <span className="font-semibold">John Doe</span>
+            <span className="font-semibold text-sm">John Doe</span>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleInfo}
-            className="text-gray-600 hover:text-gray-900"
+            className="text-gray-600 hover:text-gray-900 h-8 w-8"
           >
-            <Info className="h-5 w-5" />
+            <Info className="h-4 w-4" />
           </Button>
         </div>
 
         <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {mockMessages.map((message) => (
               <div
                 key={message.id}
@@ -73,7 +72,7 @@ export const ChatWindow = ({
                   {message.timestamp}
                 </span>
                 <div
-                  className={cn("p-3 rounded-lg", {
+                  className={cn("p-2.5 rounded-lg text-sm", {
                     "bg-gray-100": message.sender === "user",
                     "border border-gray-200": message.sender === "bot",
                   })}
@@ -86,20 +85,17 @@ export const ChatWindow = ({
         </ScrollArea>
       </div>
 
-      {/* Info Sidebar */}
       <div
         className={cn(
-          "absolute top-0 right-0 h-full w-80 bg-white border-l transform transition-transform duration-300 ease-in-out",
+          "absolute top-0 right-0 h-full w-72 bg-white border-l transform transition-transform duration-300 ease-in-out p-4",
           {
             "translate-x-0": infoOpen,
             "translate-x-full": !infoOpen,
           }
         )}
       >
-        <div className="p-4">
-          <h3 className="font-semibold mb-4">Chat Information</h3>
-          {/* Add chat information content here */}
-        </div>
+        <h3 className="font-semibold mb-3 text-sm">Chat Information</h3>
+        {/* Add chat information content here */}
       </div>
     </div>
   );

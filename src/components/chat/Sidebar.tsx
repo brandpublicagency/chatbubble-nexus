@@ -31,37 +31,37 @@ export const Sidebar = ({ selectedChat, onSelectChat, className = "" }: SidebarP
     <div className={`flex flex-col bg-white ${className}`}>
       <div className="p-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
           <Input
             placeholder="Search conversations"
-            className="pl-10 bg-gray-100 border-none"
+            className="pl-9 pr-4 py-2 text-sm bg-gray-100 border-none h-9"
           />
         </div>
       </div>
       
       <ScrollArea className="flex-1">
-        <div className="space-y-1">
+        <div className="space-y-0.5 px-2">
           {mockConversations.map((conversation) => (
             <button
               key={conversation.id}
               onClick={() => onSelectChat(conversation.id)}
-              className={`w-full p-4 flex items-start space-x-3 hover:bg-gray-100 transition-colors ${
+              className={`w-full p-3 flex items-start space-x-3 hover:bg-gray-100 transition-colors rounded-md ${
                 selectedChat === conversation.id ? "bg-gray-100" : ""
               }`}
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-black text-white flex items-center justify-center">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs">
                 {conversation.initials}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between">
-                  <span className="font-semibold truncate">
+                  <span className="font-semibold truncate text-sm">
                     {conversation.name}
                   </span>
                   <span className="text-xs text-gray-500">
                     {conversation.timestamp}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500 truncate">
+                <p className="text-xs text-gray-500 truncate">
                   {conversation.lastMessage}
                 </p>
               </div>
