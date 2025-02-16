@@ -572,6 +572,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_conversations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          contact_id: string
+          contact_name: string
+          last_message: string
+          created_at: string
+        }[]
+      }
       get_latest_messages: {
         Args: Record<PropertyKey, never>
         Returns: {

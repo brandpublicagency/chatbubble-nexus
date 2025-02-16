@@ -1,7 +1,10 @@
 
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface SidebarProps {
   selectedChat: string | null;
@@ -9,24 +12,58 @@ interface SidebarProps {
   className?: string;
 }
 
-const mockConversations = [
-  {
-    id: "1",
-    name: "John Doe",
-    lastMessage: "Hey, how are you?",
-    timestamp: "10:30 AM",
-    initials: "JD",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    lastMessage: "Can you help me with something?",
-    timestamp: "Yesterday",
-    initials: "JS",
-  },
-];
+interface Conversation {
+  contact_id: string;
+  contact_name: string;
+  last_message: string;
+  created_at: string;
+}
 
 export const Sidebar = ({ selectedChat, onSelectChat, className = "" }: SidebarProps) => {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_conversations');
+        
+        if (error) {
+          console.error('Error fetching conversations:', error);
+          return;
+        }
+
+        setConversations(data || []);
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConversations();
+  }, []);
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      return format(date, 'HH:mm');
+    }
+    return format(date, 'MMM d');
+  };
+
   return (
     <div className={`flex flex-col bg-white ${className}`}>
       <div className="p-4">
@@ -41,32 +78,38 @@ export const Sidebar = ({ selectedChat, onSelectChat, className = "" }: SidebarP
       
       <ScrollArea className="flex-1">
         <div className="space-y-0.5 px-2">
-          {mockConversations.map((conversation) => (
-            <button
-              key={conversation.id}
-              onClick={() => onSelectChat(conversation.id)}
-              className={`w-full p-3 flex items-start space-x-3 hover:bg-gray-100 transition-colors rounded-md ${
-                selectedChat === conversation.id ? "bg-gray-100" : ""
-              }`}
-            >
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs">
-                {conversation.initials}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between">
-                  <span className="font-semibold truncate text-sm">
-                    {conversation.name}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {conversation.timestamp}
-                  </span>
+          {isLoading ? (
+            <div className="p-4 text-sm text-gray-500 text-center">Loading conversations...</div>
+          ) : conversations.length === 0 ? (
+            <div className="p-4 text-sm text-gray-500 text-center">No conversations yet</div>
+          ) : (
+            conversations.map((conversation) => (
+              <button
+                key={conversation.contact_id}
+                onClick={() => onSelectChat(conversation.contact_id)}
+                className={`w-full p-3 flex items-start space-x-3 hover:bg-gray-100 transition-colors rounded-md ${
+                  selectedChat === conversation.contact_id ? "bg-gray-100" : ""
+                }`}
+              >
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs">
+                  {getInitials(conversation.contact_name)}
                 </div>
-                <p className="text-xs text-gray-500 truncate">
-                  {conversation.lastMessage}
-                </p>
-              </div>
-            </button>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between">
+                    <span className="font-semibold truncate text-sm">
+                      {conversation.contact_name}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {formatTimestamp(conversation.created_at)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 truncate">
+                    {conversation.last_message}
+                  </p>
+                </div>
+              </button>
+            ))
+          )}
         </div>
       </ScrollArea>
     </div>
