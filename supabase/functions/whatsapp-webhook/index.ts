@@ -100,9 +100,10 @@ serve(async (req) => {
         type: imageBlob.type
       })
       
-      // 3. Generate a unique filename
+      // 3. Generate a unique filename using timestamp and uuid
+      const uuid = crypto.randomUUID()
       const timestamp = Date.now()
-      const filePath = `${timestamp}.jpg`
+      const filePath = `${timestamp}_${uuid}.jpg`
       
       console.log('Attempting to upload image to Supabase:', {
         path: filePath,
@@ -110,7 +111,23 @@ serve(async (req) => {
         type: imageBlob.type
       })
       
-      // 4. Upload to Supabase storage
+      // 4. Check if chat_images bucket exists, if not create it
+      const { data: buckets } = await supabase.storage.listBuckets()
+      const chatImagesBucket = buckets?.find(b => b.name === 'chat_images')
+      
+      if (!chatImagesBucket) {
+        const { error: createBucketError } = await supabase.storage.createBucket('chat_images', {
+          public: true,
+          fileSizeLimit: 5242880 // 5MB
+        })
+        
+        if (createBucketError) {
+          console.error('Failed to create bucket:', createBucketError)
+          throw new Error(`Failed to create storage bucket: ${createBucketError.message}`)
+        }
+      }
+      
+      // 5. Upload to Supabase storage
       const { data: bucketData, error: bucketError } = await supabase.storage
         .from('chat_images')
         .upload(filePath, imageBlob, {
@@ -136,14 +153,15 @@ serve(async (req) => {
         uploadData: bucketData
       })
       
-      // 5. Save message to database with attachment path
+      // 6. Save message to database with attachment path
       const { error: insertError } = await supabase
         .from('conversations')
         .insert({
           contact_id: contact.wa_id,
           text: message.image?.caption || 'Image message',
           attachment_path: filePath,
-          attachment_type: 'image/jpeg'
+          attachment_type: 'image/jpeg',
+          meta_id: message.id
         })
       
       if (insertError) {
@@ -179,7 +197,7 @@ serve(async (req) => {
     const { data, error } = await supabase
       .from('conversations')
       .insert([
-        { contact_id: wa_id, text: text },
+        { contact_id: wa_id, text: text, meta_id: message.id },
       ])
     
     if (error) {
