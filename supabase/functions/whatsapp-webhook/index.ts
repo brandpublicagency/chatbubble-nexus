@@ -42,7 +42,11 @@ serve(async (req) => {
     
     // Handle image messages
     if (message.type === 'image' && message.image) {
-      console.log('Processing image message:', message.image)
+      console.log('Processing image message:', {
+        messageId: message.id,
+        imageId: message.image.id,
+        timestamp: new Date().toISOString()
+      })
       
       // 1. Get the media URL from Meta
       const mediaUrlResponse = await fetch(
@@ -96,14 +100,18 @@ serve(async (req) => {
         type: imageBlob.type
       })
       
-      // 3. Generate a unique filename that includes image ID
+      // 3. Generate a unique filename
       const timestamp = Date.now()
-      const filePath = `${message.image.id}_${timestamp}.jpg`
+      const filePath = `${timestamp}.jpg`
       
-      console.log('Attempting to upload image with path:', filePath)
+      console.log('Attempting to upload image to Supabase:', {
+        path: filePath,
+        size: imageBlob.size,
+        type: imageBlob.type
+      })
       
       // 4. Upload to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { data: bucketData, error: bucketError } = await supabase.storage
         .from('chat_images')
         .upload(filePath, imageBlob, {
           contentType: 'image/jpeg',
@@ -111,19 +119,21 @@ serve(async (req) => {
           upsert: false
         })
       
-      if (uploadError) {
+      if (bucketError) {
         console.error('Upload error:', {
-          error: uploadError,
+          error: bucketError,
           path: filePath,
+          errorMessage: bucketError.message,
+          errorDetails: bucketError.details,
           blobSize: imageBlob.size,
           blobType: imageBlob.type
         })
-        throw new Error(`Failed to upload to storage: ${uploadError.message}`)
+        throw new Error(`Failed to upload to storage: ${bucketError.message}`)
       }
       
       console.log('Successfully uploaded image:', {
         path: filePath,
-        uploadData
+        uploadData: bucketData
       })
       
       // 5. Save message to database with attachment path
