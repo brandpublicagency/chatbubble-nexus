@@ -33,7 +33,6 @@ export const useChatMessages = (chatId: string | null): ChatData => {
         setIsLoading(true);
         setError(null);
 
-        // First try to find contact by wa_id
         const { data: contactData, error: contactError } = await supabase
           .from('contacts')
           .select('name')
@@ -50,7 +49,6 @@ export const useChatMessages = (chatId: string | null): ChatData => {
           setContactName(contactData.name || '');
         }
 
-        // Fetch messages
         const { data: messageData, error: messageError } = await supabase
           .from('conversations')
           .select('*')
@@ -74,41 +72,27 @@ export const useChatMessages = (chatId: string | null): ChatData => {
 
     fetchMessages();
 
-    // Set up realtime subscription with broadcast mode
-    const channel = supabase
-      .channel('public:conversations')
+    // Simplified channel subscription
+    const channel = supabase.channel('any')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'conversations',
-          filter: `contact_id=eq.${chatId}`,
+          filter: `contact_id=eq.${chatId}`
         },
         (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setMessages((currentMessages) => [...currentMessages, payload.new as Message]);
-          } else if (payload.eventType === 'UPDATE') {
-            setMessages((currentMessages) =>
-              currentMessages.map((msg) =>
-                msg.id === payload.new.id ? payload.new as Message : msg
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setMessages((currentMessages) =>
-              currentMessages.filter((msg) => msg.id !== payload.old.id)
-            );
-          }
+          console.log('New message received:', payload);
+          setMessages(prev => [...prev, payload.new as Message]);
         }
       )
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          console.error('Failed to subscribe to changes:', status);
-        }
+        console.log('Subscription status:', status);
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [chatId]);
 
