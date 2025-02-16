@@ -79,6 +79,42 @@ export const useChatMessages = (chatId: string | null): ChatData => {
     };
 
     fetchMessages();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('conversations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `contact_id=eq.${chatId}`,
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            setMessages((currentMessages) => [...currentMessages, payload.new as Message]);
+          } else if (payload.eventType === 'UPDATE') {
+            setMessages((currentMessages) =>
+              currentMessages.map((msg) =>
+                msg.id === payload.new.id ? payload.new as Message : msg
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setMessages((currentMessages) =>
+              currentMessages.filter((msg) => msg.id !== payload.old.id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount or when chatId changes
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [chatId]);
 
   return { messages, contactName, isLoading, error };
