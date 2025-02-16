@@ -16,6 +16,7 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
     throw new Error('No path provided');
   }
 
+  console.log('Loading image with path:', path);
   const isOldFormat = isLegacyImagePath(path);
   
   if (isOldFormat) {
@@ -27,26 +28,43 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
     .from('chat_images')
     .getPublicUrl(path);
 
+  console.log('Generated public URL:', urlData);
+
   if (!urlData?.publicUrl) {
+    console.error('Failed to generate public URL for path:', path);
     throw new Error('Failed to generate public URL');
   }
 
   // Verify file exists in storage
-  const { data: existsData, error: existsError } = await supabase.storage
-    .from('chat_images')
-    .download(path);
+  try {
+    const { data: existsData, error: existsError } = await supabase.storage
+      .from('chat_images')
+      .download(path);
 
-  if (existsError) {
-    throw new Error('File not found in storage');
+    if (existsError) {
+      console.error('File not found in storage:', { path, error: existsError });
+      throw new Error('File not found in storage');
+    }
+
+    console.log('File exists in storage:', { path, size: existsData?.size });
+  } catch (error) {
+    console.error('Error checking file existence:', error);
+    throw error;
   }
 
   // Pre-load image
-  await new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = urlData.publicUrl;
-    img.onload = resolve;
-    img.onerror = reject;
-  });
+  try {
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = urlData.publicUrl;
+      img.onload = resolve;
+      img.onerror = reject;
+    });
+    console.log('Image pre-loaded successfully:', urlData.publicUrl);
+  } catch (error) {
+    console.error('Error pre-loading image:', error);
+    throw error;
+  }
 
   return {
     publicUrl: urlData.publicUrl,

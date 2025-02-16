@@ -25,7 +25,9 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
+        console.log('Loading image with path:', path);
         const result = await loadImage(path);
+        console.log('Image load result:', result);
         setPublicUrl(result.publicUrl);
         setImageError(result.error);
         setIsLegacyFormat(result.isOldFormat);
