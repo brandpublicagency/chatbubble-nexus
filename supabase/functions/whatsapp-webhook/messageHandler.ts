@@ -16,7 +16,8 @@ export async function handleMessage(
       console.log('Processing image message:', {
         messageId: message.id,
         contactId: contact.wa_id,
-        hasImage: !!message.image
+        hasImage: !!message.image,
+        imageId: message.image.id
       });
       
       // Process image first
@@ -37,6 +38,7 @@ export async function handleMessage(
           text: imageResult.caption || 'Image message',
           attachment_path: imageResult.path,
           attachment_type: imageResult.type,
+          message_type: 'image',
           meta_id: message.id
         });
       
@@ -61,13 +63,19 @@ export async function handleMessage(
   if (message.text?.body) {
     console.log('Processing text message:', {
       messageId: message.id,
-      contactId: contact.wa_id
+      contactId: contact.wa_id,
+      text: message.text.body
     });
     
     const { error } = await supabase
       .from('conversations')
       .insert([
-        { contact_id: contact.wa_id, text: message.text.body, meta_id: message.id },
+        { 
+          contact_id: contact.wa_id, 
+          text: message.text.body, 
+          meta_id: message.id,
+          message_type: 'text'
+        },
       ]);
     
     if (error) {

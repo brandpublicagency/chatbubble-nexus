@@ -36,7 +36,7 @@ export async function getMediaUrl(imageId: string, metaToken: string): Promise<s
 }
 
 export async function downloadImage(url: string, metaToken: string): Promise<Blob> {
-  console.log('Downloading image from URL');
+  console.log('Downloading image from URL:', url);
   const imageResponse = await fetch(url, {
     headers: { Authorization: `Bearer ${metaToken}` }
   });
@@ -45,13 +45,17 @@ export async function downloadImage(url: string, metaToken: string): Promise<Blo
     const errorText = await imageResponse.text();
     console.error('Failed to download image:', {
       status: imageResponse.status,
-      error: errorText
+      error: errorText,
+      url: url
     });
     throw new Error(`Failed to download image: ${errorText}`);
   }
   
   const blob = await imageResponse.blob();
-  console.log('Image downloaded successfully:', { size: blob.size, type: blob.type });
+  console.log('Image downloaded successfully:', { 
+    size: blob.size, 
+    type: blob.type 
+  });
   return blob;
 }
 
@@ -110,7 +114,7 @@ export async function processImage(
   console.log('Starting image processing:', { imageId, caption });
   
   const mediaUrl = await getMediaUrl(imageId, metaToken);
-  console.log('Got media URL');
+  console.log('Got media URL:', mediaUrl);
   
   const imageBlob = await downloadImage(mediaUrl, metaToken);
   console.log('Downloaded image:', { size: imageBlob.size, type: imageBlob.type });
