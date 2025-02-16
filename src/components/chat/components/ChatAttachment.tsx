@@ -10,29 +10,52 @@ interface ChatAttachmentProps {
 
 export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) => {
   const [imageError, setImageError] = useState(false);
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
   
-  // Detailed debug logging
-  console.log('ChatAttachment render:', {
-    path,
-    type,
-    isImageType: type?.startsWith('image/'),
-    isPdfType: type?.startsWith('application/pdf')
-  });
+  useEffect(() => {
+    const fetchUrl = async () => {
+      if (!path) {
+        console.warn('No path provided to ChatAttachment');
+        return;
+      }
+
+      try {
+        console.log('Attempting to get public URL for:', {
+          path,
+          type,
+          bucket: 'chat_attachments'
+        });
+
+        const { data, error } = supabase.storage
+          .from('chat_attachments')
+          .getPublicUrl(path);
+
+        if (error) {
+          console.error('Error getting public URL:', error);
+          return;
+        }
+
+        if (!data?.publicUrl) {
+          console.error('No public URL returned for path:', path);
+          return;
+        }
+
+        console.log('Successfully generated public URL:', {
+          path,
+          publicUrl: data.publicUrl
+        });
+
+        setPublicUrl(data.publicUrl);
+      } catch (error) {
+        console.error('Unexpected error getting public URL:', error);
+      }
+    };
+
+    fetchUrl();
+  }, [path]);
   
-  // Get the public URL with additional error handling
-  const urlResult = supabase.storage.from('chat_attachments').getPublicUrl(path);
-  console.log('Supabase URL result:', urlResult);
-  
-  const publicUrl = urlResult.data?.publicUrl;
-  
-  // Validate both path and URL
-  if (!path) {
-    console.warn('No path provided to ChatAttachment');
-    return null;
-  }
-  
-  if (!publicUrl) {
-    console.warn('Failed to generate public URL for path:', path);
+  if (!path || !publicUrl) {
+    console.warn('Missing required data:', { path, publicUrl });
     return null;
   }
   
