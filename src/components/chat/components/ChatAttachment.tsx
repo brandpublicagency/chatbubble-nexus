@@ -29,51 +29,97 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
-        const { data: buckets } = await supabase.storage.listBuckets();
+        // First check if bucket exists and log its state
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+        
+        console.log('Available buckets:', {
+          buckets: buckets?.map(b => ({ name: b.name, id: b.id, public: b.public })),
+          error: bucketsError,
+          timestamp: new Date().toISOString()
+        });
+        
         const chatImagesBucket = buckets?.find(b => b.name === 'chat_images');
         
+        console.log('Chat images bucket status:', {
+          exists: !!chatImagesBucket,
+          bucket: chatImagesBucket,
+          timestamp: new Date().toISOString()
+        });
+
         if (!chatImagesBucket) {
           console.error('chat_images bucket not found');
           throw new Error('Storage bucket not found');
         }
 
+        // List files in the bucket to debug
+        const { data: files, error: listError } = await supabase.storage
+          .from('chat_images')
+          .list();
+
+        console.log('Files in chat_images bucket:', {
+          files,
+          error: listError,
+          timestamp: new Date().toISOString()
+        });
+
         // Get the public URL for the image
-        const { data } = supabase.storage
+        const { data: urlData, error: urlError } = supabase.storage
           .from('chat_images')
           .getPublicUrl(path);
 
-        if (!data?.publicUrl) {
+        console.log('Public URL generation:', {
+          path,
+          publicUrl: urlData?.publicUrl,
+          error: urlError,
+          timestamp: new Date().toISOString()
+        });
+
+        if (!urlData?.publicUrl) {
           console.error('Failed to generate public URL:', {
             path,
+            error: urlError,
             timestamp: new Date().toISOString()
           });
           throw new Error('Failed to generate public URL');
         }
 
-        console.log('Generated public URL:', {
-          originalPath: path,
-          publicUrl: data.publicUrl,
+        // Check if file exists in bucket
+        const { data: existsData, error: existsError } = await supabase.storage
+          .from('chat_images')
+          .download(path);
+
+        console.log('File existence check:', {
+          exists: !!existsData,
+          path,
+          error: existsError,
           timestamp: new Date().toISOString()
         });
 
         // Pre-load the image to verify it exists
         const img = new Image();
-        img.src = data.publicUrl;
+        img.src = urlData.publicUrl;
         
         await new Promise((resolve, reject) => {
-          img.onload = resolve;
+          img.onload = () => {
+            console.log('Image successfully preloaded:', {
+              path,
+              publicUrl: urlData.publicUrl,
+              timestamp: new Date().toISOString()
+            });
+            resolve(null);
+          };
           img.onerror = (error) => {
             console.error('Image preload failed:', {
               error,
               path,
-              publicUrl: data.publicUrl,
+              publicUrl: urlData.publicUrl,
               timestamp: new Date().toISOString()
             });
             reject(error);
           };
         });
 
-        setPublicUrl(data.publicUrl);
+        setPublicUrl(urlData.publicUrl);
         setImageError(false);
       } catch (error) {
         console.error('Error loading image:', {
@@ -110,7 +156,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       return (
         <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500 flex items-center gap-2">
           <ImageIcon className="w-4 h-4" />
-          <span>Unable to load image</span>
+          <span>Unable to load image (Path: {path})</span>
         </div>
       );
     }
@@ -118,7 +164,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
     if (!publicUrl) {
       return (
         <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
-          Image URL not available
+          Image URL not available for path: {path}
         </div>
       );
     }
