@@ -62,6 +62,7 @@ export const useChatMessages = (chatId: string | null): ChatData => {
           return;
         }
 
+        console.log('Initial messages loaded:', messageData);
         setMessages(messageData || []);
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -74,10 +75,7 @@ export const useChatMessages = (chatId: string | null): ChatData => {
     fetchMessages();
 
     // Set up realtime subscription
-    const channelId = `chat-${chatId}`;
-    console.log(`Setting up realtime subscription for channel: ${channelId}`);
-    
-    const channel = supabase.channel(channelId)
+    const channel = supabase.channel('realtime')
       .on(
         'postgres_changes',
         {
@@ -104,16 +102,24 @@ export const useChatMessages = (chatId: string | null): ChatData => {
               attachment_type: payload.new.attachment_type
             };
             console.log('Adding new message to state:', newMessage);
-            setMessages(prev => [...prev, newMessage]);
+            setMessages(prevMessages => {
+              console.log('Previous messages:', prevMessages);
+              const updatedMessages = [...prevMessages, newMessage];
+              console.log('Updated messages:', updatedMessages);
+              return updatedMessages;
+            });
+          } else {
+            console.warn('Received payload is missing required fields:', payload);
           }
         }
       )
-      .subscribe(async (status) => {
-        console.log(`Channel ${channelId} status:`, status);
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to realtime updates');
         } else if (status === 'CLOSED') {
-          console.log('Channel closed');
+          console.error('Channel closed');
+          setError('Lost connection to realtime updates');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('Channel error occurred');
           setError('Failed to connect to realtime updates');
@@ -121,7 +127,7 @@ export const useChatMessages = (chatId: string | null): ChatData => {
       });
 
     return () => {
-      console.log(`Cleaning up channel: ${channelId}`);
+      console.log('Cleaning up realtime subscription');
       channel.unsubscribe();
     };
   }, [chatId]);
