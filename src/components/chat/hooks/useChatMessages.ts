@@ -29,6 +29,8 @@ export const useChatMessages = (chatId: string | null): ChatData => {
     const fetchMessages = async () => {
       if (!chatId) return;
 
+      console.log('Fetching messages for chatId:', chatId);
+
       try {
         setIsLoading(true);
         setError(null);
@@ -39,7 +41,12 @@ export const useChatMessages = (chatId: string | null): ChatData => {
           .eq('wa_id', chatId)
           .maybeSingle();
 
+        if (contactError) {
+          console.error('Error fetching contact by wa_id:', contactError);
+        }
+
         if (!contactData) {
+          console.log('No contact found with wa_id, trying id...');
           const { data: contactByIdData, error: contactByIdError } = await supabase
             .from('contacts')
             .select('name')
@@ -54,9 +61,13 @@ export const useChatMessages = (chatId: string | null): ChatData => {
         }
 
         if (contactData) {
+          console.log('Found contact:', contactData);
           setContactName(contactData.name || '');
+        } else {
+          console.log('No contact found for ID:', chatId);
         }
 
+        console.log('Fetching conversations for contact_id:', chatId);
         const { data: messageData, error: messageError } = await supabase
           .from('conversations')
           .select('*')
@@ -69,9 +80,10 @@ export const useChatMessages = (chatId: string | null): ChatData => {
           return;
         }
 
+        console.log('Fetched messages:', messageData);
         setMessages(messageData || []);
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Unexpected error:', error);
         setError('An unexpected error occurred');
       } finally {
         setIsLoading(false);
@@ -80,7 +92,7 @@ export const useChatMessages = (chatId: string | null): ChatData => {
 
     fetchMessages();
 
-    // Set up real-time subscription
+    console.log('Setting up realtime subscription for chatId:', chatId);
     const channel = supabase
       .channel('conversations-changes')
       .on(
@@ -95,24 +107,29 @@ export const useChatMessages = (chatId: string | null): ChatData => {
           console.log('Real-time update received:', payload);
           
           if (payload.eventType === 'INSERT') {
+            console.log('Inserting new message:', payload.new);
             setMessages((currentMessages) => [...currentMessages, payload.new as Message]);
           } else if (payload.eventType === 'UPDATE') {
+            console.log('Updating message:', payload.new);
             setMessages((currentMessages) =>
               currentMessages.map((msg) =>
                 msg.id === payload.new.id ? payload.new as Message : msg
               )
             );
           } else if (payload.eventType === 'DELETE') {
+            console.log('Deleting message:', payload.old);
             setMessages((currentMessages) =>
               currentMessages.filter((msg) => msg.id !== payload.old.id)
             );
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
-    // Cleanup subscription on unmount or when chatId changes
     return () => {
+      console.log('Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [chatId]);
