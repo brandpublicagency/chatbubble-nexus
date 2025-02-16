@@ -1,6 +1,7 @@
 
 import { cn } from "@/lib/utils";
-import { formatMessageTimestamp, formatMessageText } from "../utils/messageFormatting";
+import { formatMessageTimestamp } from "../utils/messageFormatting";
+import { MessageText } from "./MessageText";
 
 interface ChatMessageProps {
   message: {
@@ -27,7 +28,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
           "border border-gray-200": message.sender_id,
         })}
       >
-        {formatMessageText(message.text)}
+        <MessageText text={message.text} />
       </div>
     </div>
   );
