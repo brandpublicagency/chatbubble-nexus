@@ -88,9 +88,23 @@ export const useChatMessages = (chatId: string | null): ChatData => {
         },
         (payload: RealtimePostgresChangesPayload<Message>) => {
           console.log('Realtime event received:', payload);
-          if (payload.new) {
-            console.log('Adding new message to state:', payload.new);
-            setMessages(prev => [...prev, payload.new]);
+          if (payload.new && 
+              'id' in payload.new && 
+              'text' in payload.new && 
+              'created_at' in payload.new && 
+              'contact_id' in payload.new && 
+              'sender_id' in payload.new) {
+            const newMessage: Message = {
+              id: payload.new.id,
+              text: payload.new.text,
+              created_at: payload.new.created_at,
+              contact_id: payload.new.contact_id,
+              sender_id: payload.new.sender_id,
+              attachment_path: payload.new.attachment_path,
+              attachment_type: payload.new.attachment_type
+            };
+            console.log('Adding new message to state:', newMessage);
+            setMessages(prev => [...prev, newMessage]);
           }
         }
       )
