@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 interface Message {
   id: string;
@@ -72,8 +73,11 @@ export const useChatMessages = (chatId: string | null): ChatData => {
 
     fetchMessages();
 
-    // Simplified channel subscription
-    const channel = supabase.channel('any')
+    // Set up realtime subscription
+    const channelId = `chat-${chatId}`;
+    console.log(`Setting up realtime subscription for channel: ${channelId}`);
+    
+    const channel = supabase.channel(channelId)
       .on(
         'postgres_changes',
         {
@@ -82,16 +86,28 @@ export const useChatMessages = (chatId: string | null): ChatData => {
           table: 'conversations',
           filter: `contact_id=eq.${chatId}`
         },
-        (payload) => {
-          console.log('New message received:', payload);
-          setMessages(prev => [...prev, payload.new as Message]);
+        (payload: RealtimePostgresChangesPayload<Message>) => {
+          console.log('Realtime event received:', payload);
+          if (payload.new) {
+            console.log('Adding new message to state:', payload.new);
+            setMessages(prev => [...prev, payload.new]);
+          }
         }
       )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
+      .subscribe(async (status) => {
+        console.log(`Channel ${channelId} status:`, status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to realtime updates');
+        } else if (status === 'CLOSED') {
+          console.log('Channel closed');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Channel error occurred');
+          setError('Failed to connect to realtime updates');
+        }
       });
 
     return () => {
+      console.log(`Cleaning up channel: ${channelId}`);
       channel.unsubscribe();
     };
   }, [chatId]);
