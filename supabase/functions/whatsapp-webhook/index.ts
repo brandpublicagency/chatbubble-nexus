@@ -125,6 +125,8 @@ serve(async (req) => {
           console.error('Failed to create bucket:', createBucketError)
           throw new Error(`Failed to create storage bucket: ${createBucketError.message}`)
         }
+        
+        console.log('Created chat_images bucket successfully')
       }
       
       // 5. Upload to Supabase storage
@@ -159,7 +161,7 @@ serve(async (req) => {
         .insert({
           contact_id: contact.wa_id,
           text: message.image?.caption || 'Image message',
-          attachment_path: filePath,
+          attachment_path: filePath,  // Store the generated filepath, not the Meta image ID
           attachment_type: 'image/jpeg',
           meta_id: message.id
         })
