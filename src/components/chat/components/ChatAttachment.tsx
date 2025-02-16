@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { FileIcon, ImageIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChatAttachmentProps {
   path: string;
@@ -15,7 +16,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
   
   useEffect(() => {
     const fetchUrl = async () => {
-      console.log('ChatAttachment mounted with:', {
+      console.log('ChatAttachment attempting to load:', {
         path,
         type,
         timestamp: new Date().toISOString()
@@ -28,64 +29,76 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
-        // Get the public URL directly - path should be exactly as stored (just the filename)
-        const { data: urlData } = supabase.storage
+        // Get the public URL for the image
+        const { data } = supabase.storage
           .from('chat_images')
           .getPublicUrl(path);
 
-        if (!urlData?.publicUrl) {
-          console.error('Failed to generate public URL:', {
-            path,
-            timestamp: new Date().toISOString()
-          });
-          setLoading(false);
-          return;
+        if (!data?.publicUrl) {
+          throw new Error('Failed to generate public URL');
         }
 
-        console.log('Public URL generated:', {
-          path,
-          publicUrl: urlData.publicUrl,
+        console.log('Generated public URL:', {
+          originalPath: path,
+          publicUrl: data.publicUrl,
           timestamp: new Date().toISOString()
         });
 
-        setPublicUrl(urlData.publicUrl);
-        setLoading(false);
+        // Pre-load the image to verify it exists
+        const img = new Image();
+        img.src = data.publicUrl;
+        
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+
+        setPublicUrl(data.publicUrl);
+        setImageError(false);
       } catch (error) {
-        console.error('Error in ChatAttachment:', {
+        console.error('Error loading image:', {
           error,
           path,
-          type,
           timestamp: new Date().toISOString()
         });
+        setImageError(true);
+      } finally {
         setLoading(false);
       }
     };
 
+    setLoading(true);
+    setImageError(false);
     fetchUrl();
-  }, [path, type]);
+  }, [path]);
 
   if (loading) {
     return (
-      <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
-        Loading attachment...
+      <div className="mt-2">
+        <Skeleton className="w-48 h-48 rounded-lg" />
       </div>
     );
   }
-  
-  if (!path || !publicUrl) {
-    console.warn('Missing required data:', {
-      path,
-      publicUrl,
-      timestamp: new Date().toISOString()
-    });
+
+  if (!path) {
+    console.warn('Missing attachment path');
     return null;
   }
 
   if (type?.startsWith('image/')) {
     if (imageError) {
       return (
+        <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500 flex items-center gap-2">
+          <ImageIcon className="w-4 h-4" />
+          <span>Unable to load image</span>
+        </div>
+      );
+    }
+
+    if (!publicUrl) {
+      return (
         <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
-          Unable to load image
+          Image URL not available
         </div>
       );
     }
@@ -93,28 +106,27 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
     return (
       <div className="mt-2 relative group">
         <img 
-          src={publicUrl} 
+          src={publicUrl}
           alt="Attached image" 
           className="max-w-full rounded-lg max-h-[300px] object-contain bg-gray-100"
-          onError={(e) => {
-            console.error('Image load error:', {
-              path,
+          onError={() => {
+            console.error('Image failed to load:', {
               publicUrl,
-              error: e,
+              path,
               timestamp: new Date().toISOString()
             });
             setImageError(true);
           }}
           onLoad={() => {
             console.log('Image loaded successfully:', {
-              path,
               publicUrl,
+              path,
               timestamp: new Date().toISOString()
             });
           }}
         />
         <a 
-          href={publicUrl} 
+          href={publicUrl}
           target="_blank" 
           rel="noopener noreferrer"
           className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-lg"
