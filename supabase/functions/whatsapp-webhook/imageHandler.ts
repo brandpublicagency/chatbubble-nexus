@@ -1,5 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { ImageUploadResult } from './types.ts'
 
 export async function getMediaUrl(imageId: string, metaToken: string): Promise<string> {
   const mediaUrlResponse = await fetch(
@@ -49,12 +50,18 @@ export async function uploadImageToSupabase(
   imageBlob: Blob,
   filePath: string
 ): Promise<void> {
-  const { error: uploadError } = await supabase.storage
+  console.log('Uploading image to Supabase:', { 
+    path: filePath, 
+    size: imageBlob.size, 
+    type: imageBlob.type 
+  });
+
+  const { data: uploadData, error: uploadError } = await supabase.storage
     .from('chat_images')
     .upload(filePath, imageBlob, {
       contentType: 'image/jpeg',
       cacheControl: '3600',
-      upsert: false
+      upsert: true // Changed to true to handle potential duplicates
     })
   
   if (uploadError) {
@@ -68,6 +75,8 @@ export async function uploadImageToSupabase(
     })
     throw new Error(`Failed to upload to storage: ${uploadError.message}`)
   }
+
+  console.log('Image uploaded successfully:', uploadData);
 }
 
 export async function processImage(
@@ -79,13 +88,17 @@ export async function processImage(
   console.log('Processing image:', { imageId, caption })
   
   const mediaUrl = await getMediaUrl(imageId, metaToken)
+  console.log('Got media URL:', mediaUrl)
+  
   const imageBlob = await downloadImage(mediaUrl, metaToken)
+  console.log('Downloaded image:', { size: imageBlob.size, type: imageBlob.type })
   
   const uuid = crypto.randomUUID()
   const timestamp = Date.now()
   const filePath = `${timestamp}_${uuid}.jpg`
   
   await uploadImageToSupabase(supabase, imageBlob, filePath)
+  console.log('Image uploaded to storage:', filePath)
   
   return {
     path: filePath,
