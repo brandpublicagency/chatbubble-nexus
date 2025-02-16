@@ -10,14 +10,27 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Add top-level debug logging
+  console.log("----- WhatsApp Webhook Function Invoked -----");
+  console.log("Request method:", req.method);
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+  
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    console.log("Handling CORS preflight request");
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const metaToken = Deno.env.get('META_TOKEN')
+
+    // Log environment variable presence (not their values)
+    console.log('Environment variables check:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasSupabaseKey: !!supabaseServiceKey,
+      hasMetaToken: !!metaToken
+    });
 
     if (!supabaseUrl || !supabaseServiceKey || !metaToken) {
       throw new Error('Missing environment variables')
@@ -31,13 +44,22 @@ serve(async (req) => {
     })
     
     const body = await req.json() as WhatsAppWebhookPayload
-    console.log('Received webhook:', JSON.stringify(body, null, 2))
+    console.log('Received webhook payload structure:', {
+      hasEntry: !!body.entry,
+      entryLength: body.entry?.length,
+      hasChanges: !!body.entry?.[0]?.changes,
+      changesLength: body.entry?.[0]?.changes?.length,
+      hasValue: !!body.entry?.[0]?.changes?.[0]?.value,
+      hasMessages: !!body.entry?.[0]?.changes?.[0]?.value?.messages,
+      messageCount: body.entry?.[0]?.changes?.[0]?.value?.messages?.length
+    })
     
     const entry = body.entry?.[0]
     const changes = entry?.changes?.[0]
     const value = changes?.value
     
     if (!value?.messages?.[0]) {
+      console.log('No message found in webhook payload');
       return new Response(
         JSON.stringify({ status: 'No message in webhook' }),
         {
@@ -51,11 +73,21 @@ serve(async (req) => {
     const contact = value.contacts?.[0]
     
     if (!contact) {
+      console.log('No contact information in webhook payload');
       throw new Error('No contact information in webhook')
     }
 
+    console.log('Processing message:', {
+      messageType: message.type,
+      hasImage: message.type === 'image' && !!message.image,
+      hasText: message.type === 'text' && !!message.text,
+      contactId: contact.wa_id
+    });
+
     const result = await handleMessage(supabase, message, contact, metaToken)
     
+    console.log('Message processing completed:', result);
+
     return new Response(
       JSON.stringify({ ...result }),
       {
@@ -64,7 +96,10 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error processing webhook:', error)
+    console.error('Error processing webhook:', {
+      error: error.message,
+      stack: error.stack
+    })
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
