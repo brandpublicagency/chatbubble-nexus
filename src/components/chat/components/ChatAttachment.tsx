@@ -63,21 +63,19 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         });
 
         // Get the public URL for the image
-        const { data: urlData, error: urlError } = supabase.storage
+        const { data: urlData } = supabase.storage
           .from('chat_images')
           .getPublicUrl(path);
 
         console.log('Public URL generation:', {
           path,
           publicUrl: urlData?.publicUrl,
-          error: urlError,
           timestamp: new Date().toISOString()
         });
 
         if (!urlData?.publicUrl) {
           console.error('Failed to generate public URL:', {
             path,
-            error: urlError,
             timestamp: new Date().toISOString()
           });
           throw new Error('Failed to generate public URL');
