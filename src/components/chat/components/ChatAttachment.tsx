@@ -29,6 +29,24 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
+        // Determine if this is an old format path (just numbers) or new format (includes file extension)
+        const isOldFormat = /^\d+$/.test(path);
+        
+        console.log('Path format check:', {
+          path,
+          isOldFormat,
+          timestamp: new Date().toISOString()
+        });
+
+        if (isOldFormat) {
+          // For old format, we'll show a placeholder since we can't recover these images
+          console.log('Old format image path detected:', {
+            path,
+            timestamp: new Date().toISOString()
+          });
+          throw new Error('Legacy image format');
+        }
+
         // Get the public URL for the image
         const { data: urlData } = supabase.storage
           .from('chat_images')
@@ -59,6 +77,15 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
           error: existsError,
           timestamp: new Date().toISOString()
         });
+
+        if (existsError) {
+          console.error('File does not exist in bucket:', {
+            path,
+            error: existsError,
+            timestamp: new Date().toISOString()
+          });
+          throw new Error('File not found in storage');
+        }
 
         // Pre-load the image to verify it exists
         const img = new Image();
@@ -118,10 +145,15 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
   if (type?.startsWith('image/')) {
     if (imageError) {
+      const isOldFormat = /^\d+$/.test(path);
       return (
         <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500 flex items-center gap-2">
           <ImageIcon className="w-4 h-4" />
-          <span>Unable to load image (Path: {path})</span>
+          <span>
+            {isOldFormat 
+              ? "This image is no longer available" 
+              : "Unable to load image"}
+          </span>
         </div>
       );
     }
@@ -129,7 +161,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
     if (!publicUrl) {
       return (
         <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
-          Image URL not available for path: {path}
+          Image URL not available
         </div>
       );
     }
