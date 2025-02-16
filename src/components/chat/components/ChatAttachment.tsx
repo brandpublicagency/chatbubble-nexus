@@ -15,6 +15,12 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
   
   useEffect(() => {
     const fetchUrl = async () => {
+      console.log('ChatAttachment mounted with:', {
+        path,
+        type,
+        timestamp: new Date().toISOString()
+      });
+
       if (!path) {
         console.warn('No path provided to ChatAttachment');
         setLoading(false);
@@ -35,6 +41,21 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
+        // First check if the file exists
+        const { data: existsData, error: existsError } = await supabase.storage
+          .from('chat_attachments')
+          .list('', {
+            search: fullPath
+          });
+
+        console.log('Storage list result:', {
+          exists: existsData && existsData.length > 0,
+          searchPath: fullPath,
+          results: existsData,
+          error: existsError,
+          timestamp: new Date().toISOString()
+        });
+
         // Get the public URL
         const { data: urlData } = supabase.storage
           .from('chat_attachments')
