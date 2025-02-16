@@ -26,14 +26,9 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
           bucket: 'chat_attachments'
         });
 
-        const { data, error } = supabase.storage
+        const { data } = supabase.storage
           .from('chat_attachments')
           .getPublicUrl(path);
-
-        if (error) {
-          console.error('Error getting public URL:', error);
-          return;
-        }
 
         if (!data?.publicUrl) {
           console.error('No public URL returned for path:', path);
