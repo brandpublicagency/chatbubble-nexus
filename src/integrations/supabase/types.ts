@@ -464,6 +464,8 @@ export type Database = {
       user_sessions: {
         Row: {
           answer: string | null
+          attachment_path: string | null
+          attachment_type: string | null
           contact_id: string
           created_at: string
           entity: string
@@ -474,6 +476,8 @@ export type Database = {
         }
         Insert: {
           answer?: string | null
+          attachment_path?: string | null
+          attachment_type?: string | null
           contact_id: string
           created_at?: string
           entity: string
@@ -484,6 +488,8 @@ export type Database = {
         }
         Update: {
           answer?: string | null
+          attachment_path?: string | null
+          attachment_type?: string | null
           contact_id?: string
           created_at?: string
           entity?: string
