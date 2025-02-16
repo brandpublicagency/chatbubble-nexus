@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +40,6 @@ export const ChatWindow = ({
         setIsLoading(true);
         setError(null);
 
-        // First try to fetch by wa_id
         let { data: contactData, error: contactError } = await supabase
           .from('contacts')
           .select('name')
@@ -49,7 +47,6 @@ export const ChatWindow = ({
           .maybeSingle();
 
         if (!contactData) {
-          // If not found, try to fetch by id
           const { data: contactByIdData, error: contactByIdError } = await supabase
             .from('contacts')
             .select('name')
@@ -67,7 +64,6 @@ export const ChatWindow = ({
           setContactName(contactData.name || '');
         }
 
-        // Fetch messages using the contact_id
         const { data: messageData, error: messageError } = await supabase
           .from('conversations')
           .select('*')
@@ -103,6 +99,36 @@ export const ChatWindow = ({
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const formatMessageText = (text: string) => {
+    return text.split('\n').map((line, lineIndex) => {
+      const parts = line.split(/(\*[^*]+\*)/g);
+      
+      const isBulletPoint = line.trim().startsWith('•');
+      const bulletContent = isBulletPoint ? line.substring(1).trim() : line;
+      
+      return (
+        <div key={lineIndex} className={cn("min-h-[1.2em]", {
+          "flex items-start": isBulletPoint,
+          "ml-4": isBulletPoint
+        })}>
+          {isBulletPoint && (
+            <span className="mr-2 text-gray-600">•</span>
+          )}
+          {parts.map((part, index) => {
+            if (part.startsWith('*') && part.endsWith('*')) {
+              return (
+                <strong key={index} className="font-semibold">
+                  {part.slice(1, -1)}
+                </strong>
+              );
+            }
+            return <span key={index}>{part}</span>;
+          })}
+        </div>
+      );
+    });
   };
 
   if (!chatId) {
@@ -153,12 +179,12 @@ export const ChatWindow = ({
                     {formatMessageTimestamp(message.created_at)}
                   </span>
                   <div
-                    className={cn("p-2.5 rounded-lg text-sm", {
+                    className={cn("p-2.5 rounded-lg text-sm whitespace-pre-line", {
                       "bg-gray-100": !message.sender_id,
                       "border border-gray-200": message.sender_id,
                     })}
                   >
-                    {message.text}
+                    {formatMessageText(message.text)}
                   </div>
                 </div>
               ))}
