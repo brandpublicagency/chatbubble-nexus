@@ -210,6 +210,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           id: string
+          message_type: string | null
           meta_id: string | null
           options: Json | null
           sender_id: number | null
@@ -221,6 +222,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           id?: string
+          message_type?: string | null
           meta_id?: string | null
           options?: Json | null
           sender_id?: number | null
@@ -232,6 +234,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           id?: string
+          message_type?: string | null
           meta_id?: string | null
           options?: Json | null
           sender_id?: number | null
