@@ -65,14 +65,14 @@ serve(async (req) => {
       })
       const imageBlob = await imageResponse.blob()
       
-      // 3. Generate a unique path for Supabase storage - store directly in root of bucket
+      // 3. Generate a unique filename with timestamp and extension
       const timestamp = Date.now()
       const filePath = `${timestamp}.jpg`
       
       console.log('Attempting to upload image with path:', filePath)
       
-      // 4. Upload to Supabase storage - no subfolder, just the filename
-      const { error: uploadError } = await supabase.storage
+      // 4. Upload to Supabase storage - directly in bucket root
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('chat_images')
         .upload(filePath, imageBlob, {
           contentType: 'image/jpeg',
@@ -87,13 +87,13 @@ serve(async (req) => {
       
       console.log('Successfully uploaded image to:', filePath)
       
-      // 5. Save message to database with the exact same path as used in upload
+      // 5. Save message to database with attachment path
       const { error: insertError } = await supabase
         .from('conversations')
         .insert({
           contact_id: contact.wa_id,
           text: message.image?.caption || 'Image message',
-          attachment_path: filePath, // Store exact same path as used in upload
+          attachment_path: filePath,
           attachment_type: 'image/jpeg'
         })
       
@@ -104,9 +104,9 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ 
-          status: 'Image processed successfully', 
+          status: 'Image processed successfully',
           path: filePath,
-          message: 'Image uploaded directly to bucket root'
+          message: 'Image uploaded and saved to database'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
