@@ -16,6 +16,8 @@ interface ChatMessageProps {
 }
 
 export const ChatMessage = ({ message }: ChatMessageProps) => {
+  console.log('Message data:', message); // Debug log
+  
   return (
     <div
       className={cn("flex flex-col max-w-[70%] space-y-1", {

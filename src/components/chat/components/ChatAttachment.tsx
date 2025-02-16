@@ -9,7 +9,9 @@ interface ChatAttachmentProps {
 }
 
 export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) => {
+  console.log('Attachment props:', { path, type }); // Debug log
   const fileUrl = supabase.storage.from('chat_attachments').getPublicUrl(path).data.publicUrl;
+  console.log('Generated file URL:', fileUrl); // Debug log
   
   if (type?.startsWith('image/')) {
     return (
