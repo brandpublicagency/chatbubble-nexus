@@ -53,25 +53,56 @@ serve(async (req) => {
           }
         }
       )
+      
+      if (!mediaUrlResponse.ok) {
+        const errorData = await mediaUrlResponse.text()
+        console.error('Failed to get media URL:', {
+          status: mediaUrlResponse.status,
+          error: errorData,
+          imageId: message.image.id
+        })
+        throw new Error(`Failed to get media URL: ${errorData}`)
+      }
+      
       const mediaData = await mediaUrlResponse.json()
       
       if (!mediaData.url) {
+        console.error('No URL in media data:', mediaData)
         throw new Error('Failed to get media URL from Meta')
       }
+      
+      console.log('Retrieved media URL from Meta:', {
+        imageId: message.image.id,
+        hasUrl: !!mediaData.url
+      })
       
       // 2. Download the actual image
       const imageResponse = await fetch(mediaData.url, {
         headers: { Authorization: `Bearer ${metaToken}` }
       })
-      const imageBlob = await imageResponse.blob()
       
-      // 3. Generate a unique filename with timestamp and extension
+      if (!imageResponse.ok) {
+        const errorText = await imageResponse.text()
+        console.error('Failed to download image:', {
+          status: imageResponse.status,
+          error: errorText
+        })
+        throw new Error(`Failed to download image: ${errorText}`)
+      }
+      
+      const imageBlob = await imageResponse.blob()
+      console.log('Downloaded image:', {
+        size: imageBlob.size,
+        type: imageBlob.type
+      })
+      
+      // 3. Generate a unique filename
       const timestamp = Date.now()
       const filePath = `${timestamp}.jpg`
       
       console.log('Attempting to upload image with path:', filePath)
       
-      // 4. Upload to Supabase storage - directly in bucket root
+      // 4. Upload to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('chat_images')
         .upload(filePath, imageBlob, {
@@ -81,11 +112,19 @@ serve(async (req) => {
         })
       
       if (uploadError) {
-        console.error('Upload error:', uploadError)
+        console.error('Upload error:', {
+          error: uploadError,
+          path: filePath,
+          blobSize: imageBlob.size,
+          blobType: imageBlob.type
+        })
         throw new Error(`Failed to upload to storage: ${uploadError.message}`)
       }
       
-      console.log('Successfully uploaded image to:', filePath)
+      console.log('Successfully uploaded image:', {
+        path: filePath,
+        uploadData
+      })
       
       // 5. Save message to database with attachment path
       const { error: insertError } = await supabase
