@@ -11,25 +11,34 @@ interface ChatAttachmentProps {
 export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) => {
   const [imageError, setImageError] = useState(false);
   
-  // Log the raw props
-  console.log('ChatAttachment props:', { path, type });
+  // Detailed debug logging
+  console.log('ChatAttachment render:', {
+    path,
+    type,
+    isImageType: type?.startsWith('image/'),
+    isPdfType: type?.startsWith('application/pdf')
+  });
   
-  // Get the public URL directly without state management
-  const { data } = supabase.storage.from('chat_attachments').getPublicUrl(path);
-  const publicUrl = data?.publicUrl;
+  // Get the public URL with additional error handling
+  const urlResult = supabase.storage.from('chat_attachments').getPublicUrl(path);
+  console.log('Supabase URL result:', urlResult);
   
-  // Log the generated URL
-  console.log('Generated public URL:', publicUrl);
-
-  // Make sure we have a valid path and URL
-  if (!path || !publicUrl) {
-    console.warn('No path or URL available:', { path, publicUrl });
+  const publicUrl = urlResult.data?.publicUrl;
+  
+  // Validate both path and URL
+  if (!path) {
+    console.warn('No path provided to ChatAttachment');
+    return null;
+  }
+  
+  if (!publicUrl) {
+    console.warn('Failed to generate public URL for path:', path);
     return null;
   }
   
   if (type?.startsWith('image/')) {
-    // If we've had an error loading the image, show a fallback
     if (imageError) {
+      console.warn('Image failed to load, showing fallback for:', publicUrl);
       return (
         <div className="mt-2 p-4 border rounded-lg bg-gray-50 text-sm text-gray-500">
           Unable to load image
@@ -44,14 +53,20 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
           alt="Attached image" 
           className="max-w-full rounded-lg max-h-[300px] object-contain bg-gray-100"
           onError={(e) => {
-            console.error('Image failed to load:', {
-              url: publicUrl,
-              error: e
+            console.error('Image load error:', {
+              path,
+              publicUrl,
+              error: e,
+              timestamp: new Date().toISOString()
             });
             setImageError(true);
           }}
           onLoad={() => {
-            console.log('Image loaded successfully:', publicUrl);
+            console.log('Image loaded successfully:', {
+              path,
+              publicUrl,
+              timestamp: new Date().toISOString()
+            });
           }}
         />
         <a 
