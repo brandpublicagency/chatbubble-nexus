@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { FileIcon, ImageIcon } from "lucide-react";
 
@@ -9,20 +9,24 @@ interface ChatAttachmentProps {
 }
 
 export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) => {
-  console.log('Rendering ChatAttachment with:', { path, type }); // Debug log
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
   
-  // Make sure we have a valid path
-  if (!path) {
-    console.warn('No path provided to ChatAttachment');
+  useEffect(() => {
+    if (!path) return;
+    
+    const url = supabase.storage
+      .from('chat_attachments')
+      .getPublicUrl(path);
+      
+    console.log('Raw Supabase URL response:', url); // Debug log
+    setPublicUrl(url.data.publicUrl);
+  }, [path]);
+
+  // Make sure we have a valid path and URL
+  if (!path || !publicUrl) {
+    console.warn('No path or URL available:', { path, publicUrl });
     return null;
   }
-
-  // Get the public URL for the file
-  const { data: { publicUrl } } = supabase.storage
-    .from('chat_attachments')
-    .getPublicUrl(path);
-  
-  console.log('Generated public URL:', publicUrl); // Debug log
   
   if (type?.startsWith('image/')) {
     return (
@@ -36,6 +40,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
             const target = e.target as HTMLImageElement;
             target.style.display = 'none';
           }}
+          crossOrigin="anonymous"
         />
         <a 
           href={publicUrl} 
