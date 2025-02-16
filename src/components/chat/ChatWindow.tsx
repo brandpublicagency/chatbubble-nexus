@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useRef } from "react";
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,6 +32,25 @@ export const ChatWindow = ({
   const [contactName, setContactName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom function
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  };
+
+  // Scroll to bottom when messages change or when chat is loaded
+  useEffect(() => {
+    if (!isLoading && messages.length > 0) {
+      // Use setTimeout to ensure the DOM has updated
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [messages, isLoading]);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -159,7 +179,7 @@ export const ChatWindow = ({
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
           {isLoading ? (
             <div className="text-center text-sm text-gray-500">Loading messages...</div>
           ) : error ? (
