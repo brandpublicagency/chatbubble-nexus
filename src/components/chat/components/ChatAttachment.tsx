@@ -29,39 +29,6 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       }
 
       try {
-        // First check if bucket exists and log its state
-        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-        
-        console.log('Available buckets:', {
-          buckets: buckets?.map(b => ({ name: b.name, id: b.id, public: b.public })),
-          error: bucketsError,
-          timestamp: new Date().toISOString()
-        });
-        
-        const chatImagesBucket = buckets?.find(b => b.name === 'chat_images');
-        
-        console.log('Chat images bucket status:', {
-          exists: !!chatImagesBucket,
-          bucket: chatImagesBucket,
-          timestamp: new Date().toISOString()
-        });
-
-        if (!chatImagesBucket) {
-          console.error('chat_images bucket not found');
-          throw new Error('Storage bucket not found');
-        }
-
-        // List files in the bucket to debug
-        const { data: files, error: listError } = await supabase.storage
-          .from('chat_images')
-          .list();
-
-        console.log('Files in chat_images bucket:', {
-          files,
-          error: listError,
-          timestamp: new Date().toISOString()
-        });
-
         // Get the public URL for the image
         const { data: urlData } = supabase.storage
           .from('chat_images')

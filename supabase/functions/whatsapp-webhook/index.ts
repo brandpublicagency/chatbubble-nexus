@@ -106,7 +106,7 @@ serve(async (req) => {
         type: imageBlob.type
       })
       
-      // 3. Generate a unique filename using timestamp and uuid
+      // 3. Generate a unique filename
       const uuid = crypto.randomUUID()
       const timestamp = Date.now()
       const filePath = `${timestamp}_${uuid}.jpg`
@@ -117,7 +117,7 @@ serve(async (req) => {
         type: imageBlob.type
       })
       
-      // 4. Upload to Supabase storage (no need to check bucket as we've created it via SQL)
+      // 4. Upload to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('chat_images')
         .upload(filePath, imageBlob, {
@@ -149,7 +149,7 @@ serve(async (req) => {
         .insert({
           contact_id: contact.wa_id,
           text: message.image?.caption || 'Image message',
-          attachment_path: filePath,
+          attachment_path: filePath,  // This now contains the correct file path
           attachment_type: 'image/jpeg',
           meta_id: message.id
         })
