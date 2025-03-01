@@ -9,19 +9,19 @@ export const ChatLayout = () => {
   const [infoOpen, setInfoOpen] = useState(false);
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-gray-50">
       <ChatHeader />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
           selectedChat={selectedChat}
           onSelectChat={setSelectedChat}
-          className="w-full md:w-1/3 border-r"
+          className="w-full md:w-1/3 border-r bg-white shadow-sm"
         />
         <ChatWindow
           chatId={selectedChat}
           infoOpen={infoOpen}
           onToggleInfo={() => setInfoOpen(!infoOpen)}
-          className="hidden md:flex md:w-2/3"
+          className="hidden md:flex md:w-2/3 bg-white"
         />
       </div>
     </div>
