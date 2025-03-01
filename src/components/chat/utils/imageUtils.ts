@@ -117,24 +117,52 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
     console.error('Error checking Meta image in storage:', error);
   }
   
-  // If we couldn't find the file in storage, check if there's a URL in the database
+  // Check if the image URL is stored in the conversations table
   try {
     const { data, error } = await supabase
-      .from('media_files')
-      .select('file_url')
-      .eq('media_id', path)
+      .from('conversations')
+      .select('attachment_path')
+      .eq('meta_id', path)
       .maybeSingle();
     
-    if (!error && data?.file_url) {
-      console.log('Found URL for Meta image ID in database:', data.file_url);
+    if (!error && data?.attachment_path) {
+      console.log('Found URL for Meta image ID in conversations table:', data.attachment_path);
       return {
-        publicUrl: data.file_url,
+        publicUrl: data.attachment_path,
         error: false,
         isOldFormat: false
       };
     }
   } catch (dbError) {
-    console.error('Error fetching from media_files table:', dbError);
+    console.error('Error fetching from conversations table:', dbError);
+  }
+  
+  // Check if we have a chat attachment record
+  try {
+    const { data, error } = await supabase
+      .from('chat_attachments')
+      .select('file_path')
+      .eq('message_id', path)
+      .maybeSingle();
+    
+    if (!error && data?.file_path) {
+      console.log('Found path in chat_attachments table:', data.file_path);
+      
+      // Get public URL for this file path
+      const { data: urlData } = supabase.storage
+        .from('chat_images')
+        .getPublicUrl(data.file_path);
+        
+      if (urlData?.publicUrl) {
+        return {
+          publicUrl: urlData.publicUrl,
+          error: false,
+          isOldFormat: false
+        };
+      }
+    }
+  } catch (dbError) {
+    console.error('Error fetching from chat_attachments table:', dbError);
   }
   
   // If none of the above methods worked, return an error state

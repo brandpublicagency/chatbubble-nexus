@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ImageIcon, Loader2, RefreshCw } from "lucide-react";
+import { ImageIcon, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AttachmentErrorProps {
