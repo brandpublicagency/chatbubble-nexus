@@ -5,6 +5,7 @@ import { loadImage } from '../utils/imageUtils';
 import { ImageAttachment } from './attachments/ImageAttachment';
 import { PDFAttachment } from './attachments/PDFAttachment';
 import { AttachmentError } from './attachments/AttachmentError';
+import { toast } from "sonner";
 
 interface ChatAttachmentProps {
   path: string;
@@ -16,6 +17,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLegacyFormat, setIsLegacyFormat] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
     const fetchUrl = async () => {
@@ -34,7 +36,10 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       } catch (error) {
         console.error('Error loading image:', error);
         setImageError(true);
-        setIsLegacyFormat(/^\d+$/.test(path));
+        setIsLegacyFormat(/^\d+$/.test(path) && path.length > 8);
+        
+        // Show a toast notification when we can't load the image
+        toast.error("Failed to load media attachment");
       } finally {
         setLoading(false);
       }
@@ -43,7 +48,12 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
     setLoading(true);
     setImageError(false);
     fetchUrl();
-  }, [path]);
+  }, [path, retryCount]);
+
+  // Function to retry loading the image
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
 
   if (loading) {
     return <Skeleton className="mt-2 w-48 h-48 rounded-lg" />;
@@ -55,11 +65,11 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
   if (type?.startsWith('image/')) {
     if (imageError) {
-      return <AttachmentError isLegacy={isLegacyFormat} />;
+      return <AttachmentError isLegacy={isLegacyFormat} onRetry={handleRetry} />;
     }
 
     if (!publicUrl) {
-      return <AttachmentError />;
+      return <AttachmentError onRetry={handleRetry} />;
     }
 
     return (
