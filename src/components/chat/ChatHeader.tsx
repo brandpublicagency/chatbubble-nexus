@@ -11,9 +11,6 @@ export const ChatHeader = () => {
         <a href="/" className="text-sm hover:text-gray-300 transition-colors">
           Home
         </a>
-        <a href="/images" className="text-sm hover:text-gray-300 transition-colors">
-          Images
-        </a>
       </nav>
       
       <div className="flex items-center space-x-4">
