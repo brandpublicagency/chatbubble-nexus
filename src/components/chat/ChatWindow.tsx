@@ -91,11 +91,11 @@ export const ChatWindow = ({
             <h4 className="font-medium mb-1">Technical Info</h4>
             <p>The AWS Lambda function that processes WhatsApp media needs to be updated to use the correct API endpoint format:</p>
             <pre className="text-xs bg-gray-200 p-1 mt-1 rounded overflow-x-auto">
-              GET https://graph.facebook.com/v19.0/{media_id}
+              GET https://graph.facebook.com/v19.0/&#123;mediaId&#125;
             </pre>
             <p className="mt-1">Instead of the current incorrect format:</p>
             <pre className="text-xs bg-gray-200 p-1 mt-1 rounded overflow-x-auto">
-              GET https://graph.facebook.com/v19.0/{phone_id}/media/{media_id}
+              GET https://graph.facebook.com/v19.0/&#123;phoneId&#125;/media/&#123;mediaId&#125;
             </pre>
           </div>
         </div>
