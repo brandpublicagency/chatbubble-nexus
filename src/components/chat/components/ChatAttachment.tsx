@@ -65,11 +65,11 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
   if (type?.startsWith('image/')) {
     if (imageError) {
-      return <AttachmentError isLegacy={isLegacyFormat} onRetry={handleRetry} />;
+      return <AttachmentError isLegacy={isLegacyFormat} onRetry={handleRetry} path={path} />;
     }
 
     if (!publicUrl) {
-      return <AttachmentError onRetry={handleRetry} />;
+      return <AttachmentError onRetry={handleRetry} path={path} />;
     }
 
     return (
