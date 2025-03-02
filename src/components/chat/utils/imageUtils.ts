@@ -70,6 +70,12 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
   // If we reach here, the path might be a Meta image ID
   console.log('Meta image ID detected:', path);
   
+  // Check if it's a WhatsApp ID with standard format (wamid.*)
+  const isWhatsAppId = path.startsWith('wamid.');
+  if (isWhatsAppId) {
+    console.log('WhatsApp media ID format detected');
+  }
+  
   // Try to check if this Meta image ID has a corresponding file in storage
   try {
     // First, check if we have a file with the ID as the name
