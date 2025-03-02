@@ -76,27 +76,30 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
     console.log('WhatsApp media ID format detected');
   }
   
-  // Try to check if this Meta image ID has a corresponding file in storage
+  // First, check if the path matches the pattern used in the AWS bot (messageId as filename)
   try {
-    // First, check if we have a file with the ID as the name
-    const metaImageFileName = `${path}.jpg`;
-    const { data: urlData } = supabase.storage
-      .from('chat_images')
-      .getPublicUrl(metaImageFileName);
-
-    if (urlData?.publicUrl) {
-      // Check if the file actually exists
-      const { data: existsData, error: existsError } = await supabase.storage
+    // Check if we have a file with the full Meta ID as the name
+    if (isWhatsAppId) {
+      // Format used in the AWS bot: ${messageId}.jpg 
+      const metaImageFileNameWithExt = `${path}.jpg`;
+      const { data: urlData } = supabase.storage
         .from('chat_images')
-        .download(metaImageFileName);
+        .getPublicUrl(metaImageFileNameWithExt);
 
-      if (!existsError && existsData) {
-        console.log('Meta image found in storage:', { path: metaImageFileName, size: existsData?.size });
-        return {
-          publicUrl: urlData.publicUrl,
-          error: false,
-          isOldFormat: false
-        };
+      if (urlData?.publicUrl) {
+        // Check if the file actually exists
+        const { data: existsData, error: existsError } = await supabase.storage
+          .from('chat_images')
+          .download(metaImageFileNameWithExt);
+
+        if (!existsError && existsData) {
+          console.log('Meta image found in storage with extension:', { path: metaImageFileNameWithExt, size: existsData?.size });
+          return {
+            publicUrl: urlData.publicUrl,
+            error: false,
+            isOldFormat: false
+          };
+        }
       }
     }
 
@@ -123,8 +126,9 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
     console.error('Error checking Meta image in storage:', error);
   }
   
-  // Check if the image URL is stored in the conversations table
+  // Check if the image is stored in the conversations table
   try {
+    // Look for the meta_id in the conversations table
     const { data, error } = await supabase
       .from('conversations')
       .select('attachment_path')
@@ -132,12 +136,20 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
       .maybeSingle();
     
     if (!error && data?.attachment_path) {
-      console.log('Found URL for Meta image ID in conversations table:', data.attachment_path);
-      return {
-        publicUrl: data.attachment_path,
-        error: false,
-        isOldFormat: false
-      };
+      console.log('Found file path for Meta image ID in conversations table:', data.attachment_path);
+      
+      // Get public URL for this file path
+      const { data: urlData } = supabase.storage
+        .from('chat_images')
+        .getPublicUrl(data.attachment_path);
+        
+      if (urlData?.publicUrl) {
+        return {
+          publicUrl: urlData.publicUrl,
+          error: false,
+          isOldFormat: false
+        };
+      }
     }
   } catch (dbError) {
     console.error('Error fetching from conversations table:', dbError);

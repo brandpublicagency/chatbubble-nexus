@@ -18,6 +18,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
   const [loading, setLoading] = useState(true);
   const [isLegacyFormat, setIsLegacyFormat] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchUrl = async () => {
@@ -33,10 +34,12 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         setPublicUrl(result.publicUrl);
         setImageError(result.error);
         setIsLegacyFormat(result.isOldFormat);
+        setErrorDetails(null);
       } catch (error) {
         console.error('Error loading image:', error);
         setImageError(true);
         setIsLegacyFormat(/^\d+$/.test(path) && path.length > 8);
+        setErrorDetails(error.message || 'Unknown error');
         
         // Show a toast notification when we can't load the image
         toast.error("Failed to load media attachment");
@@ -65,11 +68,20 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
 
   if (type?.startsWith('image/')) {
     if (imageError) {
-      return <AttachmentError isLegacy={isLegacyFormat} onRetry={handleRetry} path={path} />;
+      return <AttachmentError 
+        isLegacy={isLegacyFormat} 
+        onRetry={handleRetry} 
+        path={path}
+        errorDetails={errorDetails} 
+      />;
     }
 
     if (!publicUrl) {
-      return <AttachmentError onRetry={handleRetry} path={path} />;
+      return <AttachmentError 
+        onRetry={handleRetry} 
+        path={path}
+        errorDetails={errorDetails || "No URL found for image"} 
+      />;
     }
 
     return (

@@ -19,8 +19,9 @@ interface ChatMessageProps {
 export const ChatMessage = ({ message }: ChatMessageProps) => {
   console.log('Message data:', message); // Debug log
   
-  // Determine which ID to use for the attachment - use meta_id if available
-  const attachmentPath = message.attachment_path || (message.meta_id ? message.meta_id : null);
+  // Determine which ID to use for the attachment
+  // First try attachment_path, then fallback to meta_id
+  const attachmentPath = message.attachment_path || message.meta_id || null;
   
   return (
     <div
@@ -39,7 +40,10 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       >
         {message.text && <MessageText text={message.text} />}
         {attachmentPath && message.attachment_type && (
-          <ChatAttachment path={attachmentPath} type={message.attachment_type} />
+          <ChatAttachment 
+            path={attachmentPath} 
+            type={message.attachment_type} 
+          />
         )}
       </div>
     </div>
