@@ -34,7 +34,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         setPublicUrl(result.publicUrl);
         setImageError(result.error);
         setIsLegacyFormat(result.isOldFormat);
-        setErrorDetails(null);
+        setErrorDetails(result.errorDetails || null);
       } catch (error) {
         console.error('Error loading image:', error);
         setImageError(true);

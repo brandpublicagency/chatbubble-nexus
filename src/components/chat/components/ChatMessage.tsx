@@ -19,9 +19,11 @@ interface ChatMessageProps {
 export const ChatMessage = ({ message }: ChatMessageProps) => {
   console.log('Message data:', message); // Debug log
   
-  // Determine which ID to use for the attachment
-  // First try attachment_path, then fallback to meta_id
+  // For attachments, try multiple paths:
+  // 1. attachment_path (stored in DB)
+  // 2. meta_id (WhatsApp message ID, which might be used as filename in storage)
   const attachmentPath = message.attachment_path || message.meta_id || null;
+  const hasAttachment = !!attachmentPath && !!message.attachment_type;
   
   return (
     <div
@@ -39,11 +41,16 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
         })}
       >
         {message.text && <MessageText text={message.text} />}
-        {attachmentPath && message.attachment_type && (
+        {hasAttachment && (
           <ChatAttachment 
             path={attachmentPath} 
             type={message.attachment_type} 
           />
+        )}
+        {message.meta_id && !message.attachment_path && !message.attachment_type && (
+          <div className="mt-2 text-xs text-gray-400 italic">
+            Possible media attachment (ID: {message.meta_id.substring(0, 8)}...)
+          </div>
         )}
       </div>
     </div>

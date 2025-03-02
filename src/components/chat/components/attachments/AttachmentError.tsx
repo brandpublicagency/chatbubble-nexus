@@ -32,22 +32,23 @@ export const AttachmentError: React.FC<AttachmentErrorProps> = ({
       ) : (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Image is being processed...</span>
+          <span>Media attachment unavailable</span>
         </>
       )}
     </div>
     
     {path && (
       <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-        ID: {path}
+        ID: {path.substring(0, 10)}...{path.substring(path.length - 5)}
         {errorDetails && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
                 <Info className="w-3 h-3 text-gray-400" />
               </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-[300px] break-words">{errorDetails}</p>
+              <TooltipContent className="max-w-[300px]">
+                <p className="text-xs break-words">{errorDetails}</p>
+                <p className="text-xs mt-1 italic">Issue detected in AWS Lambda function media handling.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
