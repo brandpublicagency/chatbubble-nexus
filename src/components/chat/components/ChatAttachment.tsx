@@ -19,6 +19,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
   const [isLegacyFormat, setIsLegacyFormat] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [mediaId, setMediaId] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchUrl = async () => {
@@ -35,6 +36,7 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         setImageError(result.error);
         setIsLegacyFormat(result.isOldFormat);
         setErrorDetails(result.errorDetails || null);
+        setMediaId(result.mediaId || null);
       } catch (error) {
         console.error('Error loading image:', error);
         setImageError(true);
@@ -42,7 +44,9 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         setErrorDetails(error.message || 'Unknown error');
         
         // Show a toast notification when we can't load the image
-        toast.error("Failed to load media attachment");
+        toast.error("Failed to load media attachment", {
+          description: "The attachment could not be retrieved from storage."
+        });
       } finally {
         setLoading(false);
       }
@@ -72,7 +76,9 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
         isLegacy={isLegacyFormat} 
         onRetry={handleRetry} 
         path={path}
-        errorDetails={errorDetails} 
+        errorDetails={errorDetails}
+        mediaId={mediaId}
+        type={type}
       />;
     }
 
@@ -80,7 +86,9 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
       return <AttachmentError 
         onRetry={handleRetry} 
         path={path}
-        errorDetails={errorDetails || "No URL found for image"} 
+        errorDetails={errorDetails || "No URL found for image"}
+        mediaId={mediaId}
+        type={type}
       />;
     }
 
@@ -96,5 +104,9 @@ export const ChatAttachment: React.FC<ChatAttachmentProps> = ({ path, type }) =>
     return <PDFAttachment publicUrl={publicUrl} />;
   }
   
-  return null;
+  return <AttachmentError 
+    path={path}
+    errorDetails="Unsupported file type"
+    type={type}
+  />;
 };

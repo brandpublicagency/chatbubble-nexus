@@ -6,6 +6,7 @@ export interface ImageLoadResult {
   error: boolean;
   isOldFormat: boolean;
   errorDetails?: string | null;
+  mediaId?: string | null;
 }
 
 export const isLegacyImagePath = (path: string): boolean => {
@@ -13,7 +14,27 @@ export const isLegacyImagePath = (path: string): boolean => {
 };
 
 export const isWhatsAppMediaId = (path: string): boolean => {
-  return path.startsWith('wamid.') || path.includes('WhatsApp');
+  // Common patterns for WhatsApp media IDs
+  return path.startsWith('wamid.') || 
+         path.includes('WhatsApp') || 
+         path.includes('3A') && path.length > 20;
+};
+
+export const extractMediaIdFromPath = (path: string): string | null => {
+  if (!path) return null;
+  
+  // Try to extract the media ID from various formats
+  if (path.includes('_')) {
+    const parts = path.split('_');
+    return parts[0];
+  }
+  
+  if (path.includes('.')) {
+    const parts = path.split('.');
+    return parts[0];
+  }
+  
+  return path;
 };
 
 export const loadImage = async (path: string): Promise<ImageLoadResult> => {
@@ -22,6 +43,7 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
   }
 
   console.log('Loading image with path:', path);
+  const mediaId = extractMediaIdFromPath(path);
   
   // Case 1: Check if the path is a direct filename in storage
   if (path.includes('.')) {
@@ -61,7 +83,8 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
           return {
             publicUrl: urlData.publicUrl,
             error: false,
-            isOldFormat: false
+            isOldFormat: false,
+            mediaId
           };
         } catch (error) {
           console.error('Error pre-loading image:', error);
@@ -85,13 +108,17 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
   
   // First, check if we have a file with the WhatsApp message ID as the filename
   try {
-    // Try with .jpg extension first
+    // Try with multiple extensions and formats
     const possiblePathsToCheck = [
-      `${path}.jpg`,  // Standard format: messageId.jpg
-      path,           // Raw path/ID
-      `${path}.jpeg`, // Alternative extension
-      `${path}.png`,  // Alternative extension
-      `${path}_image.jpg` // Another possible format
+      `${path}.jpg`,            // Standard format: messageId.jpg
+      path,                     // Raw path/ID
+      `${path}.jpeg`,           // Alternative extension
+      `${path}.png`,            // Alternative extension
+      `${path}_image.jpg`,      // Another possible format
+      `${path.split('_')[0]}.jpg`, // First part of ID with .jpg
+      `${mediaId}.jpg`,         // Extracted media ID with .jpg
+      `${mediaId}.jpeg`,        // Extracted media ID with .jpeg
+      `${mediaId}.png`          // Extracted media ID with .png
     ];
     
     for (const pathToCheck of possiblePathsToCheck) {
@@ -111,7 +138,8 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
             return {
               publicUrl: urlData.publicUrl,
               error: false,
-              isOldFormat: false
+              isOldFormat: false,
+              mediaId
             };
           }
         }
@@ -145,7 +173,8 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
         return {
           publicUrl: urlData.publicUrl,
           error: false,
-          isOldFormat: false
+          isOldFormat: false,
+          mediaId
         };
       }
     }
@@ -173,7 +202,8 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
         return {
           publicUrl: urlData.publicUrl,
           error: false,
-          isOldFormat: false
+          isOldFormat: false,
+          mediaId
         };
       }
     }
@@ -181,10 +211,10 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
     console.error('Error fetching from chat_attachments table:', dbError);
   }
   
-  // If none of the above methods worked, return an error state
+  // If none of the above methods worked, return an error state with details
   let errorDetails = '';
   if (isWhatsApp) {
-    errorDetails = 'WhatsApp media URL not properly processed in AWS function. The function is using incorrect URL structure to fetch media.';
+    errorDetails = 'The WhatsApp media file could not be retrieved from storage. This is likely due to an issue with the AWS Lambda function that processes media.';
   } else {
     errorDetails = 'File not found in storage or database records';
   }
@@ -193,6 +223,7 @@ export const loadImage = async (path: string): Promise<ImageLoadResult> => {
     publicUrl: null,
     error: true,
     isOldFormat: isLegacyImagePath(path),
-    errorDetails
+    errorDetails,
+    mediaId
   };
 };

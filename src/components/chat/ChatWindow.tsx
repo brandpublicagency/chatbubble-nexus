@@ -1,3 +1,4 @@
+
 import { useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ export const ChatWindow = ({
 }: ChatWindowProps) => {
   const { messages, contactName, isLoading, error } = useChatMessages(chatId);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(0);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -32,7 +34,11 @@ export const ChatWindow = ({
 
   useEffect(() => {
     if (!isLoading && messages.length > 0) {
-      setTimeout(scrollToBottom, 100);
+      // If new messages came in or initial load
+      if (messages.length !== prevMessagesLengthRef.current) {
+        setTimeout(scrollToBottom, 100);
+        prevMessagesLengthRef.current = messages.length;
+      }
     }
   }, [messages, isLoading]);
 
@@ -76,7 +82,23 @@ export const ChatWindow = ({
         )}
       >
         <h3 className="font-semibold mb-3 text-sm">Chat Information</h3>
-        {/* Add chat information content here */}
+        <div className="text-xs text-gray-500">
+          <p>Contact ID: {chatId}</p>
+          <p>Name: {contactName || 'Unknown'}</p>
+          <p>Messages: {messages.length}</p>
+          
+          <div className="mt-4 p-3 bg-gray-100 rounded-md">
+            <h4 className="font-medium mb-1">Technical Info</h4>
+            <p>The AWS Lambda function that processes WhatsApp media needs to be updated to use the correct API endpoint format:</p>
+            <pre className="text-xs bg-gray-200 p-1 mt-1 rounded overflow-x-auto">
+              GET https://graph.facebook.com/v19.0/{media_id}
+            </pre>
+            <p className="mt-1">Instead of the current incorrect format:</p>
+            <pre className="text-xs bg-gray-200 p-1 mt-1 rounded overflow-x-auto">
+              GET https://graph.facebook.com/v19.0/{phone_id}/media/{media_id}
+            </pre>
+          </div>
+        </div>
       </div>
     </div>
   );

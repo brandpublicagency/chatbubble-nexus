@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { formatMessageTimestamp } from "../utils/messageFormatting";
 import { MessageText } from "./MessageText";
 import { ChatAttachment } from "./ChatAttachment";
+import { isWhatsAppMediaId } from "../utils/imageUtils";
 
 interface ChatMessageProps {
   message: {
@@ -19,11 +20,24 @@ interface ChatMessageProps {
 export const ChatMessage = ({ message }: ChatMessageProps) => {
   console.log('Message data:', message); // Debug log
   
-  // For attachments, try multiple paths:
-  // 1. attachment_path (stored in DB)
-  // 2. meta_id (WhatsApp message ID, which might be used as filename in storage)
-  const attachmentPath = message.attachment_path || message.meta_id || null;
+  // Determine the most appropriate attachment path to use
+  const determineAttachmentPath = () => {
+    // First try the explicit attachment_path if present
+    if (message.attachment_path) {
+      return message.attachment_path;
+    }
+    
+    // If no attachment_path but we have a meta_id that looks like a media ID
+    if (message.meta_id && (isWhatsAppMediaId(message.meta_id) || message.attachment_type)) {
+      return message.meta_id;
+    }
+    
+    return null;
+  };
+  
+  const attachmentPath = determineAttachmentPath();
   const hasAttachment = !!attachmentPath && !!message.attachment_type;
+  const hasMediaId = !!message.meta_id && isWhatsAppMediaId(message.meta_id);
   
   return (
     <div
@@ -41,16 +55,20 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
         })}
       >
         {message.text && <MessageText text={message.text} />}
+        
         {hasAttachment && (
           <ChatAttachment 
             path={attachmentPath} 
             type={message.attachment_type} 
           />
         )}
-        {message.meta_id && !message.attachment_path && !message.attachment_type && (
-          <div className="mt-2 text-xs text-gray-400 italic">
-            Possible media attachment (ID: {message.meta_id.substring(0, 8)}...)
-          </div>
+        
+        {/* Show indicator for possible media without attachment_type */}
+        {!hasAttachment && hasMediaId && (
+          <ChatAttachment 
+            path={message.meta_id} 
+            type="image/jpeg" // Assume WhatsApp media IDs are images by default
+          />
         )}
       </div>
     </div>
